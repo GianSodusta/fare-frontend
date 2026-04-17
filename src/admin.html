@@ -1,0 +1,484 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TrikeFare — Admin Dashboard</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+      body {
+        background: var(--bg);
+      }
+      .admin-layout {
+        display: flex;
+      }
+      .sidenav {
+        width: 220px;
+        min-height: 100vh;
+        background: var(--surface);
+        border-right: 1px solid var(--border);
+        position: fixed;
+        left: 0;
+        top: 0;
+        display: none;
+        flex-direction: column;
+        padding: 1.25rem 1rem;
+        z-index: 30;
+      }
+      @media (min-width: 1024px) {
+        .sidenav {
+          display: flex;
+        }
+      }
+      .sidenav-brand {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 1.75rem;
+      }
+      .sidenav-brand .icon {
+        font-size: 1.5rem;
+      }
+      .sidenav-brand .name {
+        font-size: 1rem;
+        font-weight: 800;
+        color: var(--primary);
+      }
+      .sidenav-brand .sub {
+        font-size: 0.65rem;
+        color: var(--text-muted);
+      }
+      .sidenav-label {
+        font-size: 0.65rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 700;
+        color: var(--text-muted);
+        padding: 0 0.5rem;
+        margin: 0.75rem 0 0.3rem;
+      }
+      .sidenav-btn {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        width: 100%;
+        padding: 0.55rem 0.75rem;
+        border-radius: 0.5rem;
+        border: none;
+        background: none;
+        cursor: pointer;
+        font-family: inherit;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--text);
+        text-align: left;
+        transition: all 0.2s;
+        margin-bottom: 0.15rem;
+      }
+      .sidenav-btn:hover {
+        background: #fef3c7;
+        color: #92400e;
+      }
+      .sidenav-btn.active {
+        background: var(--primary);
+        color: #fff;
+      }
+      .sidenav-btn.danger {
+        color: var(--danger);
+      }
+      .sidenav-btn.danger:hover {
+        background: #fef2f2;
+      }
+      .sidenav-footer {
+        margin-top: auto;
+        font-size: 0.7rem;
+        color: var(--text-muted);
+        text-align: center;
+        padding-top: 1rem;
+        border-top: 1px solid var(--border);
+      }
+
+      .content {
+        flex: 1;
+        padding: 1.5rem;
+        margin-top: 60px;
+      }
+      @media (min-width: 1024px) {
+        .content {
+          margin-left: 220px;
+        }
+      }
+
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.875rem;
+        margin-bottom: 1.25rem;
+      }
+      @media (min-width: 768px) {
+        .stats-grid {
+          grid-template-columns: repeat(4, 1fr);
+        }
+      }
+
+      .charts-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1rem;
+      }
+      @media (min-width: 900px) {
+        .charts-grid {
+          grid-template-columns: 2fr 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="preloader"><div class="loader-wheel"></div></div>
+
+    <!-- Top navbar (mobile) -->
+    <nav class="navbar">
+      <div class="navbar-brand">
+        <img
+          src="img/trike-logo.png"
+          alt="TrikeFare"
+          style="
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            object-fit: cover;
+          "
+        />
+        <div>
+          <div class="logo-text">TrikeFare Admin</div>
+          <div class="logo-sub">Koronadal City Transportation</div>
+        </div>
+      </div>
+      <button class="hamburger" id="hamburger">
+        <span></span><span></span><span></span>
+      </button>
+    </nav>
+    <div class="overlay" id="overlay"></div>
+    <aside class="sidebar" id="sidebar">
+      <button class="sidebar-close" id="sidebar-close">✕</button>
+      <div style="text-align: center; margin: 1rem 0 0.5rem">
+        <span
+          class="badge badge-primary"
+          style="font-size: 0.8rem; padding: 0.3rem 0.9rem"
+          >Admin</span
+        >
+      </div>
+      <div class="sidebar-email" id="sidebar-email" style="margin-bottom: 1rem">
+        tricyclefareadmin@gmail.com
+      </div>
+      <nav class="sidebar-nav">
+        <button class="sidebar-btn active">📊 Dashboard</button>
+        <button
+          class="sidebar-btn"
+          onclick="window.location.href = 'user-management.html'"
+        >
+          👥 User Management
+        </button>
+        <button
+          class="sidebar-btn"
+          onclick="window.location.href = 'fare-settings.html'"
+        >
+          ⚙️ Fare Settings
+        </button>
+        <div class="sidebar-divider"></div>
+        <button
+          class="sidebar-btn"
+          onclick="window.location.href = 'about.html'"
+        >
+          ℹ️ System Info
+        </button>
+        <button class="sidebar-btn danger" id="logoutBtn">🚪 Sign Out</button>
+      </nav>
+      <div class="sidebar-footer">TrikeFare v2.0 · Admin Panel</div>
+    </aside>
+
+    <!-- Desktop sidenav -->
+    <div class="sidenav">
+      <div class="sidenav-brand">
+        <span class="icon">🛺</span>
+        <div>
+          <div class="name">TrikeFare</div>
+          <div class="sub">Admin Panel</div>
+        </div>
+      </div>
+      <div class="sidenav-label">Main</div>
+      <button class="sidenav-btn active">
+        <svg
+          width="15"
+          height="15"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <rect x="3" y="3" width="7" height="7" />
+          <rect x="14" y="3" width="7" height="7" />
+          <rect x="14" y="14" width="7" height="7" />
+          <rect x="3" y="14" width="7" height="7" />
+        </svg>
+        Dashboard
+      </button>
+      <button
+        class="sidenav-btn"
+        onclick="window.location.href = 'user-management.html'"
+      >
+        <svg
+          width="15"
+          height="15"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+          <circle cx="9" cy="7" r="4" />
+          <path d="M23 21v-2a4 4 0 00-3-3.87" />
+          <path d="M16 3.13a4 4 0 010 7.75" />
+        </svg>
+        User Management
+      </button>
+      <button
+        class="sidenav-btn"
+        onclick="window.location.href = 'fare-settings.html'"
+      >
+        <svg
+          width="15"
+          height="15"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <circle cx="12" cy="12" r="3" />
+          <path
+            d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"
+          />
+        </svg>
+        Fare Settings
+      </button>
+      <div class="sidenav-label" style="margin-top: 0.5rem">Other</div>
+      <button class="sidenav-btn" onclick="window.location.href = 'about.html'">
+        <svg
+          width="15"
+          height="15"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <circle cx="12" cy="12" r="10" />
+          <line x1="12" y1="8" x2="12" y2="12" />
+          <line x1="12" y1="16" x2="12.01" y2="16" />
+        </svg>
+        System Info
+      </button>
+      <button
+        class="sidenav-btn danger"
+        id="logoutBtn2"
+        onclick="
+          if (confirm('Sign out?')) {
+            localStorage.clear();
+            window.location.href = 'index.html';
+          }
+        "
+      >
+        <svg
+          width="15"
+          height="15"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+          <polyline points="16 17 21 12 16 7" />
+          <line x1="21" y1="12" x2="9" y2="12" />
+        </svg>
+        Sign Out
+      </button>
+      <div class="sidenav-footer">TrikeFare v2.0<br />City of Koronadal</div>
+    </div>
+
+    <!-- Main content -->
+    <div class="content">
+      <div style="margin-bottom: 1.25rem">
+        <h1 style="font-size: 1.25rem; font-weight: 800">Dashboard Overview</h1>
+        <p
+          style="
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 0.1rem;
+          "
+        >
+          City of Koronadal Transportation Management
+        </p>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-grid">
+        <div class="card stat-card">
+          <div>
+            <div class="stat-label">Total Trips</div>
+            <div class="stat-value" id="total_trips">—</div>
+          </div>
+          <div class="stat-icon primary">🗺️</div>
+        </div>
+        <div class="card stat-card">
+          <div>
+            <div class="stat-label">Total Users</div>
+            <div class="stat-value" id="total_users">—</div>
+          </div>
+          <div class="stat-icon success">👥</div>
+        </div>
+        <div class="card stat-card">
+          <div>
+            <div class="stat-label">Base Fare</div>
+            <div class="stat-value">₱<span id="base_fare">—</span></div>
+          </div>
+          <div class="stat-icon warning">💵</div>
+        </div>
+        <div class="card stat-card">
+          <div>
+            <div class="stat-label">Rate / km</div>
+            <div class="stat-value">₱<span id="per_km">—</span></div>
+          </div>
+          <div class="stat-icon rose">📏</div>
+        </div>
+      </div>
+
+      <!-- Charts -->
+      <div class="charts-grid">
+        <div class="card">
+          <h2 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 1rem">
+            📅 Weekly Trip Analytics
+          </h2>
+          <canvas id="weeklyTripsChart" height="200"></canvas>
+        </div>
+        <div class="card">
+          <h2 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 1rem">
+            🚩 Top Destinations
+          </h2>
+          <canvas id="topDestinationsChart" height="220"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <script src="utils.js"></script>
+    <script>
+      initPreloader();
+
+      async function loadDashboard() {
+        try {
+          const [tripsRes, usersRes, faresRes] = await Promise.all([
+            fetch(`${API_URL}/trips/count`),
+            fetch(`${API_URL}/users/count`),
+            fetch(`${API_URL}/fares`),
+          ]);
+          if (tripsRes.ok) {
+            const d = await tripsRes.json();
+            document.getElementById("total_trips").textContent = d.total;
+          }
+          if (usersRes.ok) {
+            const d = await usersRes.json();
+            document.getElementById("total_users").textContent = d.total;
+          }
+          if (faresRes.ok) {
+            const d = await faresRes.json();
+            document.getElementById("base_fare").textContent = d.base_fare;
+            document.getElementById("per_km").textContent = d.per_km;
+          }
+        } catch (e) {
+          console.error("Dashboard load error:", e);
+        }
+      }
+
+      async function renderWeeklyChart() {
+        try {
+          const res = await fetch(`${API_URL}/trips/weekly`);
+          if (!res.ok) return;
+          const data = await res.json();
+          new Chart(document.getElementById("weeklyTripsChart"), {
+            type: "bar",
+            data: {
+              labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+              datasets: [
+                {
+                  label: "Trips",
+                  data,
+                  backgroundColor: "#6366f1",
+                  borderRadius: 6,
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              scales: {
+                y: { beginAtZero: true, grid: { color: "#f1f5f9" } },
+                x: { grid: { display: false } },
+              },
+              plugins: { legend: { display: false } },
+            },
+          });
+        } catch (e) {
+          console.error("Weekly chart error:", e);
+        }
+      }
+
+      async function renderDestinationsChart() {
+        try {
+          const res = await fetch(`${API_URL}/trips/top-destinations`);
+          if (!res.ok) return;
+          const data = await res.json();
+          new Chart(document.getElementById("topDestinationsChart"), {
+            type: "doughnut",
+            data: {
+              labels: data.map((d) => d.destination),
+              datasets: [
+                {
+                  data: data.map((d) => d.count),
+                  backgroundColor: [
+                    "#6366f1",
+                    "#f59e0b",
+                    "#10b981",
+                    "#3b82f6",
+                    "#ef4444",
+                  ],
+                  borderWidth: 2,
+                  borderColor: "#fff",
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              plugins: {
+                legend: {
+                  position: "bottom",
+                  labels: { font: { size: 11 }, boxWidth: 12 },
+                },
+              },
+            },
+          });
+        } catch (e) {
+          console.error("Destinations chart error:", e);
+        }
+      }
+
+      document.getElementById("logoutBtn")?.addEventListener("click", () => {
+        if (confirm("Sign out?")) {
+          localStorage.clear();
+          window.location.href = "index.html";
+        }
+      });
+
+      loadDashboard();
+      renderWeeklyChart();
+      renderDestinationsChart();
+    </script>
+  </body>
+</html>

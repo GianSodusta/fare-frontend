@@ -1,0 +1,499 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TrikeFare — Settings</title>
+    <link rel="stylesheet" href="style.css" />
+    <style>
+      body {
+        background: var(--bg);
+      }
+      .content {
+        max-width: 560px;
+        margin: 0 auto;
+        padding: 1.5rem 1rem;
+      }
+
+      .section-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 0.875rem;
+        overflow: hidden;
+        margin-bottom: 1rem;
+        box-shadow: var(--shadow);
+      }
+      .section-header {
+        padding: 0.9rem 1.25rem;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      .section-header-title {
+        font-weight: 700;
+        font-size: 0.95rem;
+      }
+      .section-header-icon {
+        font-size: 1.1rem;
+      }
+      .setting-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.875rem 1.25rem;
+        border-bottom: 1px solid var(--border);
+      }
+      .setting-row:last-child {
+        border-bottom: none;
+      }
+      .setting-info {
+        flex: 1;
+        margin-right: 1rem;
+      }
+      .setting-label {
+        font-weight: 600;
+        font-size: 0.875rem;
+      }
+      .setting-desc {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        margin-top: 0.15rem;
+      }
+
+      /* Toggle switch */
+      .toggle-wrap {
+        position: relative;
+      }
+      .toggle-input {
+        display: none;
+      }
+      .toggle-label {
+        display: block;
+        width: 44px;
+        height: 24px;
+        border-radius: 99px;
+        background: var(--border);
+        cursor: pointer;
+        transition: background 0.25s;
+        position: relative;
+      }
+      .toggle-label::after {
+        content: "";
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: #fff;
+        transition: transform 0.25s;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+      }
+      .toggle-input:checked + .toggle-label {
+        background: var(--primary);
+      }
+      .toggle-input:checked + .toggle-label::after {
+        transform: translateX(20px);
+      }
+
+      /* Map style preview */
+      .map-style-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.5rem;
+        padding: 0.875rem 1.25rem;
+      }
+      .map-style-opt {
+        border: 2px solid var(--border);
+        border-radius: 0.5rem;
+        overflow: hidden;
+        cursor: pointer;
+        transition: border-color 0.2s;
+        text-align: center;
+        padding: 0.5rem 0.25rem 0.4rem;
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: var(--text-muted);
+      }
+      .map-style-opt:hover {
+        border-color: var(--primary);
+        color: var(--primary);
+      }
+      .map-style-opt.selected {
+        border-color: var(--primary);
+        color: var(--primary);
+        background: #eef2ff;
+      }
+      .map-style-opt .style-icon {
+        font-size: 1.5rem;
+        display: block;
+        margin-bottom: 0.25rem;
+      }
+
+      /* Avatar section */
+      .avatar-section {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 0.875rem 1.25rem;
+      }
+      .avatar-large {
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        border: 3px solid #c7d2fe;
+        object-fit: cover;
+        flex-shrink: 0;
+      }
+      .avatar-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+      }
+
+      select.setting-select {
+        padding: 0.4rem 0.65rem;
+        border: 1.5px solid var(--border);
+        border-radius: 0.4rem;
+        font-family: inherit;
+        font-size: 0.85rem;
+        background: var(--surface);
+        outline: none;
+        cursor: pointer;
+        font-weight: 600;
+      }
+      select.setting-select:focus {
+        border-color: var(--primary);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="preloader"><div class="loader-wheel"></div></div>
+
+    <nav class="navbar">
+      <div class="navbar-brand">
+        <img
+          src="img/trike-logo.png"
+          alt="TrikeFare"
+          style="
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            object-fit: cover;
+          "
+        />
+        <div>
+          <div class="logo-text">TrikeFare</div>
+          <div class="logo-sub">Settings</div>
+        </div>
+      </div>
+      <button class="hamburger" id="hamburger">
+        <span></span><span></span><span></span>
+      </button>
+    </nav>
+    <div class="overlay" id="overlay"></div>
+    <aside class="sidebar" id="sidebar">
+      <button class="sidebar-close" id="sidebar-close">✕</button>
+      <img
+        class="sidebar-avatar"
+        id="sidebar-avatar"
+        src="img/person.png"
+        alt="Avatar"
+      />
+      <div class="sidebar-name" id="sidebar-name">User</div>
+      <div class="sidebar-email" id="sidebar-email">user@email.com</div>
+      <nav class="sidebar-nav">
+        <button
+          class="sidebar-btn"
+          onclick="window.location.href = 'home.html'"
+        >
+          🗺️ Home
+        </button>
+        <button
+          class="sidebar-btn"
+          onclick="window.location.href = 'trip_history.html'"
+        >
+          🕐 Trip History
+        </button>
+        <button class="sidebar-btn active">⚙️ Settings</button>
+        <button
+          class="sidebar-btn"
+          onclick="window.location.href = 'about.html'"
+        >
+          ℹ️ About
+        </button>
+        <div class="sidebar-divider"></div>
+        <button class="sidebar-btn danger" id="logoutBtn">🚪 Sign Out</button>
+      </nav>
+      <div class="sidebar-footer">TrikeFare v2.0 · City of Koronadal</div>
+    </aside>
+
+    <div class="page-body">
+      <div class="content">
+        <h1
+          style="font-size: 1.25rem; font-weight: 800; margin-bottom: 1.25rem"
+        >
+          ⚙️ Settings
+        </h1>
+
+        <!-- Profile section -->
+        <div class="section-card">
+          <div class="section-header">
+            <span class="section-header-icon">👤</span>
+            <span class="section-header-title">Profile</span>
+          </div>
+          <div class="avatar-section">
+            <img
+              class="avatar-large"
+              id="settings-avatar"
+              src="img/person.png"
+              alt="Avatar"
+            />
+            <div class="avatar-actions">
+              <div
+                style="font-weight: 700; font-size: 0.95rem"
+                id="settings-name"
+              >
+                —
+              </div>
+              <div
+                style="font-size: 0.78rem; color: var(--text-muted)"
+                id="settings-email"
+              >
+                —
+              </div>
+            </div>
+          </div>
+          <div class="setting-row">
+            <div class="setting-info">
+              <div class="setting-label">Account Type</div>
+              <div class="setting-desc">Your sign-in method</div>
+            </div>
+            <span class="badge badge-primary" id="settings-auth">Email</span>
+          </div>
+        </div>
+
+        <!-- Map settings -->
+        <div class="section-card">
+          <div class="section-header">
+            <span class="section-header-icon">🗺️</span>
+            <span class="section-header-title">Map Style</span>
+          </div>
+          <div class="map-style-grid">
+            <div
+              class="map-style-opt"
+              id="style-default"
+              onclick="setStyle('default')"
+            >
+              <span class="style-icon">🏙️</span>Street
+            </div>
+            <div
+              class="map-style-opt"
+              id="style-satellite"
+              onclick="setStyle('satellite')"
+            >
+              <span class="style-icon">🛰️</span>Satellite
+            </div>
+            <div
+              class="map-style-opt"
+              id="style-terrain"
+              onclick="setStyle('terrain')"
+            >
+              <span class="style-icon">⛰️</span>Terrain
+            </div>
+          </div>
+        </div>
+
+        <!-- Preferences -->
+        <div class="section-card">
+          <div class="section-header">
+            <span class="section-header-icon">🔔</span>
+            <span class="section-header-title">Preferences</span>
+          </div>
+          <div class="setting-row">
+            <div class="setting-info">
+              <div class="setting-label">Language</div>
+              <div class="setting-desc">App display language</div>
+            </div>
+            <select class="setting-select" id="language-select">
+              <option value="english">English</option>
+              <option value="filipino">Filipino</option>
+            </select>
+          </div>
+          <div class="setting-row">
+            <div class="setting-info">
+              <div class="setting-label">Auto-save Trips</div>
+              <div class="setting-desc">
+                Automatically save each calculated trip
+              </div>
+            </div>
+            <div class="toggle-wrap">
+              <input
+                type="checkbox"
+                class="toggle-input"
+                id="autosave-toggle"
+              />
+              <label class="toggle-label" for="autosave-toggle"></label>
+            </div>
+          </div>
+          <div class="setting-row">
+            <div class="setting-info">
+              <div class="setting-label">Show Base Zone</div>
+              <div class="setting-desc">
+                Display the base fare zone boundary on map
+              </div>
+            </div>
+            <div class="toggle-wrap">
+              <input
+                type="checkbox"
+                class="toggle-input"
+                id="zone-toggle"
+                checked
+              />
+              <label class="toggle-label" for="zone-toggle"></label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Danger zone -->
+        <div class="section-card">
+          <div class="section-header">
+            <span class="section-header-icon">⚠️</span>
+            <span class="section-header-title">Account</span>
+          </div>
+          <div class="setting-row">
+            <div class="setting-info">
+              <div class="setting-label">Clear Trip History</div>
+              <div class="setting-desc">
+                Remove all locally cached trip data
+              </div>
+            </div>
+            <button
+              class="btn btn-outline"
+              style="
+                font-size: 0.8rem;
+                padding: 0.4rem 0.8rem;
+                color: var(--danger);
+                border-color: var(--danger);
+              "
+              onclick="clearLocalData()"
+            >
+              Clear
+            </button>
+          </div>
+          <div class="setting-row">
+            <div class="setting-info">
+              <div class="setting-label">Sign Out</div>
+              <div class="setting-desc">Log out of your account</div>
+            </div>
+            <button
+              class="btn btn-danger"
+              style="font-size: 0.8rem; padding: 0.4rem 0.8rem"
+              onclick="
+                if (confirm('Sign out?')) {
+                  localStorage.clear();
+                  window.location.href = 'index.html';
+                }
+              "
+            >
+              Sign Out
+            </button>
+          </div>
+        </div>
+
+        <div
+          style="
+            text-align: center;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 1.5rem;
+          "
+        >
+          TrikeFare v2.0 — City of Koronadal Transportation System
+        </div>
+      </div>
+    </div>
+
+    <script src="utils.js"></script>
+    <script>
+      initPreloader();
+
+      // Load profile
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      document.getElementById("settings-name").textContent =
+        `${user.firstname || "User"} ${user.lastname || ""}`.trim();
+      document.getElementById("settings-email").textContent = user.email || "—";
+      if (user.profile_pic) {
+        document.getElementById("settings-avatar").src = user.profile_pic;
+      }
+      document.getElementById("settings-auth").textContent = user.google_id
+        ? "Google"
+        : "Email";
+
+      // Map style
+      function setStyle(style) {
+        localStorage.setItem("mapStyle", style);
+        document
+          .querySelectorAll(".map-style-opt")
+          .forEach((el) => el.classList.remove("selected"));
+        document.getElementById(`style-${style}`)?.classList.add("selected");
+        showToast(`Map style set to ${style}.`, "success");
+      }
+      const savedStyle = localStorage.getItem("mapStyle") || "default";
+      document.getElementById(`style-${savedStyle}`)?.classList.add("selected");
+
+      // Language
+      const langSelect = document.getElementById("language-select");
+      langSelect.value = localStorage.getItem("language") || "english";
+      langSelect.addEventListener("change", () => {
+        localStorage.setItem("language", langSelect.value);
+        showToast("Language preference saved.", "success");
+      });
+
+      // Auto-save toggle
+      const autosave = document.getElementById("autosave-toggle");
+      autosave.checked = localStorage.getItem("autosave") !== "false";
+      autosave.addEventListener("change", () => {
+        localStorage.setItem("autosave", autosave.checked);
+        showToast(
+          autosave.checked ? "Auto-save enabled." : "Auto-save disabled.",
+          "info",
+        );
+      });
+
+      // Zone toggle
+      const zoneToggle = document.getElementById("zone-toggle");
+      zoneToggle.checked = localStorage.getItem("showZone") !== "false";
+      zoneToggle.addEventListener("change", () => {
+        localStorage.setItem("showZone", zoneToggle.checked);
+        showToast(
+          zoneToggle.checked
+            ? "Zone boundary visible."
+            : "Zone boundary hidden.",
+          "info",
+        );
+      });
+
+      function clearLocalData() {
+        if (
+          !confirm(
+            "Clear all locally cached data? Your account will not be deleted.",
+          )
+        )
+          return;
+        const user = localStorage.getItem("user");
+        localStorage.clear();
+        if (user) localStorage.setItem("user", user);
+        showToast("Local data cleared.", "success");
+      }
+
+      document.getElementById("logoutBtn")?.addEventListener("click", () => {
+        if (confirm("Sign out?")) {
+          localStorage.clear();
+          window.location.href = "index.html";
+        }
+      });
+    </script>
+  </body>
+</html>

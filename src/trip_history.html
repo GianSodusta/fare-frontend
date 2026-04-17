@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TrikeFare — Trip History</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    body { background: var(--bg); }
+    .page-body { padding-top: 70px; min-height: 100vh; padding-bottom: 2rem; }
+    .content { max-width: 800px; margin: 0 auto; padding: 1.5rem 1rem; }
+
+    .trip-card {
+      background: var(--surface); border-radius: .875rem;
+      border: 1px solid var(--border); box-shadow: var(--shadow);
+      overflow: hidden; margin-bottom: .875rem;
+      transition: box-shadow .2s, transform .2s;
+    }
+    .trip-card:hover { box-shadow: var(--shadow-lg); transform: translateY(-1px); }
+    .trip-header {
+      padding: .875rem 1.125rem .6rem;
+      display: flex; justify-content: space-between; align-items: flex-start;
+      border-bottom: 1px solid var(--border);
+    }
+    .trip-route { font-weight: 700; font-size: .95rem; }
+    .trip-meta { font-size: .75rem; color: var(--text-muted); margin-top: .15rem; }
+    .trip-fare { font-family: 'Outfit', sans-serif; font-size: 1.3rem; font-weight: 800; color: var(--primary); }
+    .trip-body { padding: .75rem 1.125rem; display: flex; flex-wrap: wrap; gap: .75rem; align-items: center; }
+    .trip-detail { font-size: .78rem; color: var(--text-muted); display: flex; align-items: center; gap: .3rem; }
+
+    .trip-expand-btn { background: none; border: none; cursor: pointer; font-size: .78rem; color: var(--primary); font-weight: 700; padding: .25rem .5rem; border-radius: .35rem; transition: background .15s; }
+    .trip-expand-btn:hover { background: #eef2ff; }
+
+    .trip-map { height: 180px; width: 100%; display: none; }
+    .trip-map.open { display: block; }
+
+    .month-divider { font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--text-muted); margin: 1.25rem 0 .5rem; padding: 0 .25rem; }
+
+    .stats-bar { display: grid; grid-template-columns: repeat(3, 1fr); gap: .75rem; margin-bottom: 1.25rem; }
+    .stat-mini { background: var(--surface); border-radius: .75rem; border: 1px solid var(--border); padding: .875rem; text-align: center; box-shadow: var(--shadow); }
+    .stat-mini-val { font-size: 1.3rem; font-weight: 800; color: var(--primary); font-family: 'Outfit', sans-serif; }
+    .stat-mini-lbl { font-size: .7rem; text-transform: uppercase; letter-spacing: .4px; color: var(--text-muted); font-weight: 600; margin-top: .2rem; }
+
+    .empty-state { text-align: center; padding: 4rem 1rem; color: var(--text-muted); }
+    .empty-icon { font-size: 3rem; margin-bottom: 1rem; }
+    .empty-title { font-size: 1rem; font-weight: 700; color: var(--text); margin-bottom: .35rem; }
+
+    .search-row { display: flex; gap: .65rem; margin-bottom: 1rem; }
+    .search-row input {
+      flex: 1; padding: .55rem .9rem; border: 1.5px solid var(--border); border-radius: .5rem;
+      font-family: inherit; font-size: .875rem; outline: none; background: var(--surface);
+    }
+    .search-row input:focus { border-color: var(--primary); }
+    .search-row select { padding: .5rem .75rem; border: 1.5px solid var(--border); border-radius: .5rem; font-family: inherit; font-size: .85rem; background: var(--surface); outline: none; cursor: pointer; }
+  </style>
+</head>
+<body>
+<div id="preloader"><div class="loader-wheel"></div></div>
+
+<nav class="navbar">
+  <div class="navbar-brand">
+    <span style="font-size:1.5rem;">🛺</span>
+    <div><div class="logo-text">TrikeFare</div><div class="logo-sub">Koronadal City</div></div>
+  </div>
+  <button class="hamburger" id="hamburger"><span></span><span></span><span></span></button>
+</nav>
+<div class="overlay" id="overlay"></div>
+<aside class="sidebar" id="sidebar">
+  <button class="sidebar-close" id="sidebar-close">✕</button>
+  <img class="sidebar-avatar" id="sidebar-avatar" src="img/person.png" alt="Avatar" />
+  <div class="sidebar-name" id="sidebar-name">User</div>
+  <div class="sidebar-email" id="sidebar-email">user@email.com</div>
+  <nav class="sidebar-nav">
+    <button class="sidebar-btn" onclick="window.location.href='home.html'">🗺️ Home</button>
+    <button class="sidebar-btn active">🕐 Trip History</button>
+    <button class="sidebar-btn" onclick="window.location.href='settings.html'">⚙️ Settings</button>
+    <button class="sidebar-btn" onclick="window.location.href='about.html'">ℹ️ About</button>
+    <div class="sidebar-divider"></div>
+    <button class="sidebar-btn danger" id="logoutBtn">🚪 Sign Out</button>
+  </nav>
+  <div class="sidebar-footer">TrikeFare v2.0 · City of Koronadal</div>
+</aside>
+
+<div class="page-body">
+  <div class="content">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:.5rem;">
+      <h1 style="font-size:1.25rem;font-weight:800;">🕐 Trip History</h1>
+      <button class="btn btn-outline" onclick="loadTrips()" style="font-size:.8rem;padding:.45rem .9rem;">↺ Refresh</button>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-bar">
+      <div class="stat-mini"><div class="stat-mini-val" id="stat-trips">0</div><div class="stat-mini-lbl">Total Trips</div></div>
+      <div class="stat-mini"><div class="stat-mini-val" id="stat-spent">₱0</div><div class="stat-mini-lbl">Total Fare</div></div>
+      <div class="stat-mini"><div class="stat-mini-val" id="stat-km">0 km</div><div class="stat-mini-lbl">Distance</div></div>
+    </div>
+
+    <!-- Search/filter -->
+    <div class="search-row">
+      <input type="text" id="trip-search" placeholder="Search destination…" oninput="filterTrips()" />
+      <select id="trip-sort" onchange="filterTrips()">
+        <option value="newest">Newest</option>
+        <option value="oldest">Oldest</option>
+        <option value="highest">Highest fare</option>
+        <option value="lowest">Lowest fare</option>
+      </select>
+    </div>
+
+    <!-- Trip list -->
+    <div id="trip-list">
+      <div class="empty-state"><div class="empty-icon">⏳</div><div class="empty-title">Loading trips…</div></div>
+    </div>
+  </div>
+</div>
+
+<script src="utils.js"></script>
+<script>
+  initPreloader();
+
+  let allTrips = [];
+  const tripMaps = {};
+
+  async function loadTrips() {
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    if (!user.id) { window.location.href = "index.html"; return; }
+
+    try {
+      const res = await fetch(`${API_URL}/trips/user/${user.id}`);
+      if (!res.ok) throw new Error();
+      allTrips = await res.json();
+      updateStats();
+      filterTrips();
+    } catch (e) {
+      document.getElementById("trip-list").innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">Could not load trips</div><p style="font-size:.85rem;margin-top:.35rem;">Check your connection and try again</p></div>`;
+    }
+  }
+
+  function updateStats() {
+    const total = allTrips.length;
+    const spent = allTrips.reduce((s, t) => s + Number(t.total_fare || 0), 0);
+    const km    = allTrips.reduce((s, t) => s + Number(t.distance_km || 0), 0);
+    document.getElementById("stat-trips").textContent = total;
+    document.getElementById("stat-spent").textContent = `₱${Math.round(spent)}`;
+    document.getElementById("stat-km").textContent    = `${km.toFixed(1)} km`;
+  }
+
+  function filterTrips() {
+    const q = document.getElementById("trip-search").value.toLowerCase();
+    const sort = document.getElementById("trip-sort").value;
+    let list = allTrips.filter(t => {
+      return !q || (t.to_location||"").toLowerCase().includes(q) || (t.from_location||"").toLowerCase().includes(q);
+    });
+
+    list.sort((a, b) => {
+      if (sort === "newest")  return new Date(b.created_at) - new Date(a.created_at);
+      if (sort === "oldest")  return new Date(a.created_at) - new Date(b.created_at);
+      if (sort === "highest") return Number(b.total_fare) - Number(a.total_fare);
+      if (sort === "lowest")  return Number(a.total_fare) - Number(b.total_fare);
+    });
+
+    renderTrips(list);
+  }
+
+  function renderTrips(trips) {
+    const container = document.getElementById("trip-list");
+    if (!trips.length) {
+      container.innerHTML = `<div class="empty-state"><div class="empty-icon">🗺️</div><div class="empty-title">No trips found</div><p style="font-size:.85rem;margin-top:.35rem;">Start planning a route on the Home page</p><br/><button class="btn btn-primary" onclick="window.location.href='home.html'">Go to Map</button></div>`;
+      return;
+    }
+
+    // Group by month
+    const byMonth = {};
+    trips.forEach(t => {
+      const key = new Date(t.created_at).toLocaleDateString("en-PH", { year: "numeric", month: "long" });
+      if (!byMonth[key]) byMonth[key] = [];
+      byMonth[key].push(t);
+    });
+
+    const paxLabels = { regular: "Regular", highschoolCollege: "HS/College", elementary: "Elementary", daycareKinder: "Daycare/Kinder" };
+
+    let html = "";
+    Object.entries(byMonth).forEach(([month, list]) => {
+      html += `<div class="month-divider">${month} · ${list.length} trip${list.length !== 1 ? "s" : ""}</div>`;
+      list.forEach(t => {
+        const date = new Date(t.created_at).toLocaleDateString("en-PH", { weekday: "short", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+        const from = (t.from_location || "Unknown").split(",")[0];
+        const to   = (t.to_location  || "Unknown").split(",")[0];
+        const paxLabel = paxLabels[t.passenger_type] || "Regular";
+        const hasCoords = t.from_lat && t.from_lng && t.to_lat && t.to_lng;
+
+        html += `
+          <div class="trip-card" id="card-${t.id}">
+            <div class="trip-header">
+              <div>
+                <div class="trip-route">📍 ${from} → ${to}</div>
+                <div class="trip-meta">${date}</div>
+              </div>
+              <div style="text-align:right;">
+                <div class="trip-fare">₱${Number(t.total_fare).toFixed(0)}</div>
+                <div style="font-size:.7rem;color:var(--text-muted);">.00</div>
+              </div>
+            </div>
+            <div class="trip-body">
+              <span class="trip-detail">📏 ${Number(t.distance_km || 0).toFixed(2)} km</span>
+              <span class="trip-detail">👤 ${paxLabel}</span>
+              ${hasCoords ? `<button class="trip-expand-btn" onclick="toggleMap(${t.id}, ${t.from_lat}, ${t.from_lng}, ${t.to_lat}, ${t.to_lng}, this)">🗺 View Route</button>` : ""}
+            </div>
+            ${hasCoords ? `<div class="trip-map" id="map-${t.id}"></div>` : ""}
+          </div>`;
+      });
+    });
+
+    container.innerHTML = html;
+  }
+
+  function toggleMap(id, fromLat, fromLng, toLat, toLng, btn) {
+    const mapDiv = document.getElementById(`map-${id}`);
+    const isOpen = mapDiv.classList.toggle("open");
+    btn.textContent = isOpen ? "✕ Hide Route" : "🗺 View Route";
+
+    if (isOpen && !tripMaps[id]) {
+      // Init mini map
+      const m = L.map(`map-${id}`, { zoomControl: false, dragging: false, scrollWheelZoom: false });
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18 }).addTo(m);
+      const fromMarker = L.circleMarker([fromLat, fromLng], { color: "#6366f1", fillColor: "#6366f1", fillOpacity: 1, radius: 7 }).addTo(m).bindPopup("From");
+      const toMarker   = L.circleMarker([toLat, toLng],   { color: "#f59e0b", fillColor: "#f59e0b", fillOpacity: 1, radius: 7 }).addTo(m).bindPopup("To");
+      L.polyline([[fromLat, fromLng], [toLat, toLng]], { color: "#6366f1", weight: 3, opacity: .7, dashArray: "6,4" }).addTo(m);
+      const bounds = L.latLngBounds([[fromLat, fromLng], [toLat, toLng]]);
+      m.fitBounds(bounds, { padding: [24, 24] });
+      tripMaps[id] = m;
+    }
+  }
+
+  document.getElementById("logoutBtn")?.addEventListener("click", () => {
+    if (confirm("Sign out?")) { localStorage.clear(); window.location.href = "index.html"; }
+  });
+
+  loadTrips();
+</script>
+</body>
+</html>

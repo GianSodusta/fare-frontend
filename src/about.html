@@ -1,0 +1,416 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TrikeFare — About</title>
+    <link rel="stylesheet" href="style.css" />
+    <style>
+      body {
+        background: var(--bg);
+      }
+      .content {
+        max-width: 640px;
+        margin: 0 auto;
+        padding: 1.5rem 1rem 3rem;
+      }
+
+      .hero {
+        background: linear-gradient(
+          135deg,
+          var(--primary-dark),
+          var(--primary-light)
+        );
+        border-radius: 1rem;
+        padding: 2.5rem 2rem;
+        text-align: center;
+        color: #fff;
+        margin-bottom: 1.5rem;
+        position: relative;
+        overflow: hidden;
+      }
+      .hero::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background-image: radial-gradient(
+          circle,
+          rgba(255, 255, 255, 0.1) 1px,
+          transparent 1px
+        );
+        background-size: 24px 24px;
+      }
+      .hero-icon {
+        font-size: 3.5rem;
+        display: block;
+        margin-bottom: 0.75rem;
+        position: relative;
+        z-index: 1;
+      }
+      .hero-title {
+        font-size: 1.6rem;
+        font-weight: 800;
+        position: relative;
+        z-index: 1;
+      }
+      .hero-sub {
+        font-size: 0.875rem;
+        opacity: 0.85;
+        margin-top: 0.35rem;
+        position: relative;
+        z-index: 1;
+      }
+      .hero-version {
+        display: inline-block;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 99px;
+        padding: 0.2rem 0.75rem;
+        font-size: 0.75rem;
+        font-weight: 700;
+        margin-top: 0.75rem;
+        position: relative;
+        z-index: 1;
+      }
+
+      .info-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 0.875rem;
+        overflow: hidden;
+        margin-bottom: 1rem;
+        box-shadow: var(--shadow);
+      }
+      .info-header {
+        background: var(--bg);
+        padding: 0.75rem 1.25rem;
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--text-muted);
+        border-bottom: 1px solid var(--border);
+      }
+      .info-row {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.875rem 1.25rem;
+        border-bottom: 1px solid var(--border);
+      }
+      .info-row:last-child {
+        border-bottom: none;
+      }
+      .info-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 0.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+        flex-shrink: 0;
+      }
+      .info-label {
+        font-weight: 600;
+        font-size: 0.875rem;
+      }
+      .info-desc {
+        font-size: 0.78rem;
+        color: var(--text-muted);
+        margin-top: 0.1rem;
+      }
+
+      .feature-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.65rem;
+        margin-bottom: 1rem;
+      }
+      .feature-item {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 0.75rem;
+        padding: 0.875rem;
+        box-shadow: var(--shadow);
+      }
+      .feature-icon {
+        font-size: 1.4rem;
+        margin-bottom: 0.35rem;
+      }
+      .feature-title {
+        font-weight: 700;
+        font-size: 0.82rem;
+      }
+      .feature-desc {
+        font-size: 0.72rem;
+        color: var(--text-muted);
+        margin-top: 0.15rem;
+        line-height: 1.4;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="preloader"><div class="loader-wheel"></div></div>
+
+    <nav class="navbar">
+      <div class="navbar-brand">
+        <img
+          src="img/trike-logo.png"
+          alt="TrikeFare"
+          style="
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            object-fit: cover;
+          "
+        />
+        <div>
+          <div class="logo-text">TrikeFare</div>
+          <div class="logo-sub">About</div>
+        </div>
+      </div>
+      <button class="hamburger" id="hamburger">
+        <span></span><span></span><span></span>
+      </button>
+    </nav>
+    <div class="overlay" id="overlay"></div>
+    <aside class="sidebar" id="sidebar">
+      <button class="sidebar-close" id="sidebar-close">✕</button>
+      <img
+        class="sidebar-avatar"
+        id="sidebar-avatar"
+        src="img/person.png"
+        alt="Avatar"
+      />
+      <div class="sidebar-name" id="sidebar-name">User</div>
+      <div class="sidebar-email" id="sidebar-email">user@email.com</div>
+      <nav class="sidebar-nav">
+        <button
+          class="sidebar-btn"
+          onclick="window.location.href = 'home.html'"
+        >
+          🗺️ Home
+        </button>
+        <button
+          class="sidebar-btn"
+          onclick="window.location.href = 'trip_history.html'"
+        >
+          🕐 Trip History
+        </button>
+        <button
+          class="sidebar-btn"
+          onclick="window.location.href = 'settings.html'"
+        >
+          ⚙️ Settings
+        </button>
+        <button class="sidebar-btn active">ℹ️ About</button>
+        <div class="sidebar-divider"></div>
+        <button class="sidebar-btn danger" id="logoutBtn">🚪 Sign Out</button>
+      </nav>
+      <div class="sidebar-footer">TrikeFare v2.0 · City of Koronadal</div>
+    </aside>
+
+    <div class="page-body">
+      <div class="content">
+        <!-- Hero -->
+        <div class="hero">
+          <img
+            src="img/trike-logo.png"
+            alt="TrikeFare"
+            class="hero-icon"
+            style="
+              width: 72px;
+              height: 72px;
+              border-radius: 50%;
+              object-fit: cover;
+              border: 3px solid rgba(255, 255, 255, 0.4);
+              display: block;
+              margin: 0 auto;
+            "
+          />
+          <div class="hero-title">TrikeFare</div>
+          <div class="hero-sub">
+            City of Koronadal Transportation Management System
+          </div>
+          <span class="hero-version">Version 2.0</span>
+        </div>
+
+        <!-- About -->
+        <div class="info-card">
+          <div class="info-header">About the System</div>
+          <div
+            style="
+              padding: 1.25rem;
+              font-size: 0.875rem;
+              line-height: 1.7;
+              color: var(--text);
+            "
+          >
+            <p>
+              TrikeFare is an official fare calculation and management system
+              for tricycle transportation in the
+              <strong>City of Koronadal, South Cotabato, Philippines</strong>.
+            </p>
+            <br />
+            <p>
+              The system provides real-time fare estimates based on official
+              rates set by local transport authorities, helping both passengers
+              and drivers ensure fair and transparent pricing across all routes.
+            </p>
+          </div>
+        </div>
+
+        <!-- How it works -->
+        <div class="info-card">
+          <div class="info-header">How Fares Are Calculated</div>
+          <div class="info-row">
+            <div class="info-icon" style="background: #eef2ff">🏙️</div>
+            <div>
+              <div class="info-label">Inside Base Zone</div>
+              <div class="info-desc">
+                Trips entirely within the base zone are charged a flat base fare
+                regardless of distance
+              </div>
+            </div>
+          </div>
+          <div class="info-row">
+            <div class="info-icon" style="background: #fef3c7">📏</div>
+            <div>
+              <div class="info-label">Outside Base Zone</div>
+              <div class="info-desc">
+                Base fare + per-kilometer rate for trips crossing or outside the
+                zone boundary
+              </div>
+            </div>
+          </div>
+          <div class="info-row">
+            <div class="info-icon" style="background: #d1fae5">🎓</div>
+            <div>
+              <div class="info-label">Student Discounts</div>
+              <div class="info-desc">
+                Discounts applied to HS/College, Elementary, and Daycare/Kinder
+                passengers
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Features -->
+        <div
+          style="
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            margin: 1.25rem 0 0.5rem;
+          "
+        >
+          Features
+        </div>
+        <div class="feature-grid">
+          <div class="feature-item">
+            <div class="feature-icon">🗺️</div>
+            <div class="feature-title">Interactive Map</div>
+            <div class="feature-desc">
+              Tap anywhere on the Koronadal map to set pickup and drop-off
+              points
+            </div>
+          </div>
+          <div class="feature-item">
+            <div class="feature-icon">⚡</div>
+            <div class="feature-title">Instant Calculation</div>
+            <div class="feature-desc">
+              Fare estimates update in real time as you select your route
+            </div>
+          </div>
+          <div class="feature-item">
+            <div class="feature-icon">👥</div>
+            <div class="feature-title">Multi-Passenger</div>
+            <div class="feature-desc">
+              Calculate fares for up to 6 passengers with different types
+            </div>
+          </div>
+          <div class="feature-item">
+            <div class="feature-icon">📊</div>
+            <div class="feature-title">Trip History</div>
+            <div class="feature-desc">
+              Review past trips and track your total transportation spending
+            </div>
+          </div>
+          <div class="feature-item">
+            <div class="feature-icon">🔐</div>
+            <div class="feature-title">Secure Login</div>
+            <div class="feature-desc">
+              Sign in with email/password or your Google account
+            </div>
+          </div>
+          <div class="feature-item">
+            <div class="feature-icon">📡</div>
+            <div class="feature-title">Live Rates</div>
+            <div class="feature-desc">
+              Fare rates are managed by administrators and updated in real time
+            </div>
+          </div>
+        </div>
+
+        <!-- System info -->
+        <div class="info-card">
+          <div class="info-header">System Information</div>
+          <div class="info-row">
+            <div class="info-icon" style="background: #f1f5f9">🏛️</div>
+            <div>
+              <div class="info-label">Managed By</div>
+              <div class="info-desc">
+                City of Koronadal Local Government Unit — Transportation Office
+              </div>
+            </div>
+          </div>
+          <div class="info-row">
+            <div class="info-icon" style="background: #f1f5f9">📍</div>
+            <div>
+              <div class="info-label">Service Area</div>
+              <div class="info-desc">
+                Koronadal City, South Cotabato, Philippines (6°29′N 124°50′E)
+              </div>
+            </div>
+          </div>
+          <div class="info-row">
+            <div class="info-icon" style="background: #f1f5f9">🛠️</div>
+            <div>
+              <div class="info-label">Version</div>
+              <div class="info-desc">
+                TrikeFare v2.0 — Powered by Leaflet, OpenStreetMap &amp; Node.js
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div
+          style="
+            text-align: center;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 1.5rem;
+          "
+        >
+          © 2025 TrikeFare · City of Koronadal Transportation System<br />
+          <span style="margin-top: 0.25rem; display: block"
+            >For official use only. Fare rates subject to change.</span
+          >
+        </div>
+      </div>
+    </div>
+
+    <script src="utils.js"></script>
+    <script>
+      initPreloader();
+      document.getElementById("logoutBtn")?.addEventListener("click", () => {
+        if (confirm("Sign out?")) {
+          localStorage.clear();
+          window.location.href = "index.html";
+        }
+      });
+    </script>
+  </body>
+</html>

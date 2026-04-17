@@ -1,0 +1,1263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>TricycleFare — Koronadal City</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.min.js"></script>
+  <script src="https://unpkg.com/@turf/turf@6.5.0/turf.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary: #4338ca;
+      --primary-light: #6366f1;
+      --primary-dark: #3730a3;
+      --accent: #f59e0b;
+      --bg: #f1f5f9;
+      --surface: #ffffff;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --muted: #64748b;
+      --success: #10b981;
+      --danger: #ef4444;
+      --radius: 14px;
+      --shadow: 0 2px 16px rgba(0,0,0,0.08);
+      --shadow-lg: 0 8px 32px rgba(0,0,0,0.12);
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* HEADER */
+    header {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      height: 60px;
+      display: flex; align-items: center;
+      padding: 0 16px 0 20px;
+      gap: 12px;
+      box-shadow: var(--shadow);
+    }
+
+    .logo-img {
+      height: 44px;
+      width: auto;
+      object-fit: contain;
+    }
+
+    .header-badge {
+      background: var(--primary);
+      color: white;
+      font-size: 10px; font-weight: 600;
+      padding: 2px 8px; border-radius: 20px;
+      letter-spacing: 0.5px;
+    }
+    .header-city {
+      font-size: 12px; color: var(--muted); font-weight: 500;
+      margin-left: auto;
+    }
+
+    /* HAMBURGER BUTTON */
+    .hamburger-btn {
+      width: 40px; height: 40px;
+      border: none;
+      background: none;
+      cursor: pointer;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 5px;
+      border-radius: 8px;
+      transition: background 0.15s;
+      margin-left: 8px;
+      flex-shrink: 0;
+    }
+    .hamburger-btn:hover { background: var(--bg); }
+    .hamburger-btn span {
+      display: block;
+      width: 22px; height: 2px;
+      background: var(--text);
+      border-radius: 2px;
+      transition: all 0.25s ease;
+    }
+    .hamburger-btn.open span:nth-child(1) {
+      transform: translateY(7px) rotate(45deg);
+    }
+    .hamburger-btn.open span:nth-child(2) {
+      opacity: 0; transform: scaleX(0);
+    }
+    .hamburger-btn.open span:nth-child(3) {
+      transform: translateY(-7px) rotate(-45deg);
+    }
+
+    /* SIDE DRAWER */
+    .drawer-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.3);
+      z-index: 200;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s;
+    }
+    .drawer-overlay.open {
+      opacity: 1;
+      pointer-events: all;
+    }
+    .drawer {
+      position: fixed;
+      top: 0; right: 0;
+      width: 280px; height: 100vh;
+      background: var(--surface);
+      z-index: 300;
+      transform: translateX(100%);
+      transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex; flex-direction: column;
+      box-shadow: -4px 0 24px rgba(0,0,0,0.1);
+    }
+    .drawer.open { transform: translateX(0); }
+
+    .drawer-header {
+      height: 60px;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .drawer-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 16px; font-weight: 700;
+      color: var(--primary);
+    }
+    .drawer-close {
+      width: 32px; height: 32px;
+      border: none; background: none;
+      cursor: pointer;
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--muted);
+      font-size: 20px;
+      transition: background 0.15s;
+    }
+    .drawer-close:hover { background: var(--bg); color: var(--text); }
+
+    .drawer-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+    }
+    .drawer-section {
+      margin-bottom: 24px;
+    }
+    .drawer-section-title {
+      font-size: 11px; font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--muted);
+      margin-bottom: 8px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--border);
+    }
+    .drawer-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 11px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 14px; font-weight: 500;
+      color: var(--text);
+      transition: background 0.12s;
+      text-decoration: none;
+    }
+    .drawer-item:hover { background: var(--bg); color: var(--primary); }
+    .drawer-item svg { color: var(--muted); flex-shrink: 0; }
+    .drawer-item:hover svg { color: var(--primary); }
+
+    .drawer-footer {
+      padding: 16px;
+      border-top: 1px solid var(--border);
+      font-size: 12px; color: var(--muted);
+      text-align: center;
+    }
+    .version-badge {
+      display: inline-block;
+      background: #eef2ff;
+      color: var(--primary);
+      font-size: 11px; font-weight: 600;
+      padding: 2px 8px; border-radius: 20px;
+      margin-top: 4px;
+    }
+
+    /* LAYOUT */
+    .page {
+      padding: 80px 16px 24px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    /* PASSENGER SELECTOR */
+    .section-card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+    .card-header {
+      background: var(--primary);
+      color: white;
+      padding: 12px 20px;
+      font-weight: 600;
+      font-size: 14px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .card-body { padding: 16px; }
+
+    .passenger-tabs {
+      display: flex; gap: 6px;
+    }
+    .pax-btn {
+      flex: 1;
+      height: 44px;
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      background: var(--bg);
+      color: var(--muted);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 16px; font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s;
+      position: relative;
+    }
+    .pax-btn.active {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: white;
+    }
+    .pax-btn.has-data::after {
+      content: '';
+      position: absolute;
+      top: 4px; right: 4px;
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--success);
+    }
+    .pax-btn:hover:not(.active) { border-color: var(--primary-light); color: var(--primary); }
+
+    .pax-info {
+      background: #eef2ff;
+      border-radius: 10px;
+      padding: 10px 14px;
+      margin-top: 12px;
+    }
+    .pax-info p { font-size: 12px; color: var(--muted); line-height: 1.8; }
+
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+    @media(min-width: 900px) {
+      .main-grid { grid-template-columns: 380px 1fr; }
+    }
+
+    .field-label {
+      font-size: 13px; font-weight: 600;
+      color: var(--muted);
+      margin-bottom: 6px;
+      display: block;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .input-wrap {
+      position: relative;
+      margin-bottom: 12px;
+    }
+    .input-wrap input {
+      width: 100%;
+      height: 46px;
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      padding: 0 48px 0 44px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.15s;
+      background: #fafbfc;
+    }
+    .input-wrap input:focus { border-color: var(--primary-light); background: white; }
+    .input-icon {
+      position: absolute;
+      left: 14px; top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted);
+      width: 18px; height: 18px;
+    }
+    .input-action {
+      position: absolute;
+      right: 10px; top: 50%;
+      transform: translateY(-50%);
+      background: none; border: none;
+      cursor: pointer;
+      color: var(--muted);
+      transition: color 0.15s;
+      padding: 4px;
+    }
+    .input-action:hover { color: var(--primary); }
+
+    .autocomplete-list {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0; right: 0;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      box-shadow: var(--shadow-lg);
+      z-index: 2000;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .autocomplete-item {
+      padding: 10px 14px;
+      font-size: 13px;
+      cursor: pointer;
+      border-bottom: 1px solid #f1f5f9;
+      line-height: 1.4;
+    }
+    .autocomplete-item:last-child { border-bottom: none; }
+    .autocomplete-item:hover { background: #eef2ff; color: var(--primary); }
+
+    .calc-btn {
+      width: 100%;
+      height: 48px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px; font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s;
+      margin-bottom: 16px;
+      letter-spacing: 0.2px;
+    }
+    .calc-btn:hover { background: var(--primary-dark); transform: translateY(-1px); box-shadow: 0 4px 16px rgba(67,56,202,0.3); }
+    .calc-btn:active { transform: none; }
+
+    .places-label {
+      font-size: 13px; font-weight: 700;
+      color: var(--text);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .places-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+    .place-btn {
+      padding: 9px 12px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 12px; font-weight: 600;
+      color: var(--muted);
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.15s;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .place-btn:hover { background: #eef2ff; border-color: var(--primary-light); color: var(--primary); }
+    .place-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--primary-light); flex-shrink: 0; }
+
+    .reset-btn {
+      width: 100%;
+      height: 40px;
+      background: #fef3c7;
+      border: 1px solid var(--accent);
+      border-radius: 8px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px; font-weight: 600;
+      color: #92400e;
+      cursor: pointer;
+      margin-top: 12px;
+      transition: all 0.15s;
+    }
+    .reset-btn:hover { background: #fde68a; }
+
+    #map {
+      width: 100%; height: 400px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      z-index: 0;
+    }
+    .leaflet-control-attribution { display: none !important; }
+    .leaflet-routing-container { display: none !important; }
+
+    .route-labels {
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .route-row {
+      display: flex; align-items: center; gap: 10px;
+    }
+    .route-dot {
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      border: 2px solid white;
+      box-shadow: 0 0 0 2px currentColor;
+    }
+    .route-dot.from { color: var(--primary); background: var(--primary); }
+    .route-dot.to { color: var(--danger); background: var(--danger); }
+    .route-line { width: 2px; height: 20px; background: var(--border); margin-left: 5px; }
+    .route-text { font-size: 13px; }
+    .route-text strong { font-weight: 600; display: block; font-size: 12px; }
+    .route-text span { color: var(--muted); font-size: 11px; }
+
+    .fare-estimator { margin-top: 16px; }
+
+    .ptype-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      padding: 16px;
+    }
+    .ptype-btn {
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 10px;
+      background: var(--bg);
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s;
+      position: relative;
+    }
+    .ptype-btn:hover { border-color: var(--primary-light); background: #eef2ff; }
+    .ptype-btn.selected { border-color: var(--primary); background: #eef2ff; }
+    .ptype-btn.has-count { border-color: var(--success); }
+    .ptype-icon { font-size: 24px; margin-bottom: 6px; }
+    .ptype-name { font-size: 11px; font-weight: 700; color: var(--text); line-height: 1.3; }
+    .ptype-count {
+      position: absolute; top: -8px; right: -8px;
+      background: var(--success);
+      color: white;
+      border-radius: 50%;
+      width: 22px; height: 22px;
+      font-size: 12px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    }
+
+    .fare-display {
+      background: #eef2ff;
+      border-radius: 12px;
+      margin: 0 16px;
+      padding: 20px;
+      text-align: center;
+    }
+    .fare-big {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 48px;
+      font-weight: 700;
+      color: var(--primary);
+      line-height: 1;
+    }
+    .fare-big span { font-size: 28px; }
+    .fare-label { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+    #selectedPassengersContainer {
+      padding: 0 16px;
+      margin-top: 12px;
+    }
+    .selected-pax-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 14px;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin-bottom: 8px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    }
+    .spax-left { display: flex; align-items: center; gap: 10px; }
+    .spax-count {
+      font-size: 18px; font-weight: 700;
+      color: var(--primary);
+      min-width: 32px;
+    }
+    .spax-type { font-size: 13px; font-weight: 600; }
+    .spax-discount { font-size: 11px; color: var(--success); }
+    .spax-right { display: flex; align-items: center; gap: 8px; }
+    .spax-fare { font-size: 16px; font-weight: 700; color: var(--primary); }
+    .minus-btn {
+      width: 32px; height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: white;
+      color: var(--danger);
+      font-size: 18px; font-weight: 700;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.1s;
+    }
+    .minus-btn:hover { background: #fee2e2; border-color: var(--danger); }
+
+    .fare-breakdown {
+      margin: 12px 16px 16px;
+      background: #fafbfc;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+    }
+    .breakdown-title {
+      font-size: 13px; font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .breakdown-row {
+      display: flex; justify-content: space-between;
+      font-size: 13px; color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .breakdown-row.discount { color: var(--success); }
+    .breakdown-row.total {
+      font-weight: 700; font-size: 15px;
+      color: var(--text);
+      border-top: 1px solid var(--border);
+      padding-top: 8px; margin-top: 4px;
+    }
+    .trip-type-badge {
+      display: inline-block;
+      background: #e0e7ff;
+      color: var(--primary);
+      font-size: 11px; font-weight: 600;
+      padding: 2px 8px; border-radius: 20px;
+      margin-bottom: 8px;
+    }
+
+    footer {
+      background: var(--primary);
+      color: white;
+      text-align: center;
+      padding: 14px;
+      font-size: 13px; font-weight: 500;
+      margin-top: 24px;
+    }
+
+    .spin {
+      display: inline-block;
+      width: 14px; height: 14px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    #toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      background: var(--text); color: white;
+      padding: 10px 20px; border-radius: 10px;
+      font-size: 13px; font-weight: 500;
+      z-index: 9999;
+      opacity: 0; transition: opacity 0.2s;
+      pointer-events: none;
+    }
+    #toast.show { opacity: 1; }
+
+    @media(max-width: 480px) {
+      .fare-big { font-size: 38px; }
+      .ptype-grid { gap: 8px; }
+      .header-city { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <img class="logo-img" src="data:image/png;base64,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" alt="TricycleFare Logo"/>
+  <div class="header-badge">v1.0</div>
+  <div class="header-city">📍 Koronadal City</div>
+  <button class="hamburger-btn" id="hamburgerBtn" aria-label="Open menu">
+    <span></span>
+    <span></span>
+    <span></span>
+  </button>
+</header>
+
+<!-- DRAWER OVERLAY -->
+<div class="drawer-overlay" id="drawerOverlay"></div>
+
+<!-- SIDE DRAWER -->
+<div class="drawer" id="drawer">
+  <div class="drawer-header">
+    <span class="drawer-title">Menu</span>
+    <button class="drawer-close" id="drawerClose">✕</button>
+  </div>
+  <div class="drawer-body">
+    <div class="drawer-section">
+      <div class="drawer-section-title">Navigation</div>
+      <a class="drawer-item" href="#">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        Home
+      </a>
+      <a class="drawer-item" href="#">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        Fare Calculator
+      </a>
+      <a class="drawer-item" href="#">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+        Routes Map
+      </a>
+      <a class="drawer-item" href="#">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+        Fare Matrix
+      </a>
+    </div>
+    <div class="drawer-section">
+      <div class="drawer-section-title">Information</div>
+      <a class="drawer-item" href="#">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        About TricycleFare
+      </a>
+      <a class="drawer-item" href="#">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        Fare Ordinance
+      </a>
+      <a class="drawer-item" href="#">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.67A2 2 0 012 .99h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 8.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+        Contact / Feedback
+      </a>
+    </div>
+  </div>
+  <div class="drawer-footer">
+    TricycleFare · Koronadal City
+    <div><span class="version-badge">v1.0</span></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<div class="page">
+
+  <!-- PASSENGER SELECTOR -->
+  <div class="section-card">
+    <div class="card-header">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      Select Passenger
+    </div>
+    <div class="card-body">
+      <div class="passenger-tabs" id="passengerTabs"></div>
+      <div class="pax-info">
+        <p>• Standard: 3–4 passengers comfortably</p>
+        <p>• Maximum: 6 passengers (may be crowded)</p>
+        <p>• Children under 4 may not count as full passengers</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN GRID -->
+  <div class="main-grid">
+
+    <!-- LEFT: INPUTS -->
+    <div class="section-card">
+      <div class="card-header">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        Trip Details
+      </div>
+      <div class="card-body">
+
+        <label class="field-label">From</label>
+        <div class="input-wrap" style="position:relative">
+          <svg class="input-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s-8-4.5-8-10a8 8 0 0116 0c0 5.5-8 10-8 10z"/><circle cx="12" cy="12" r="3"/></svg>
+          <input id="fromInput" type="text" placeholder="e.g. KCC Mall" autocomplete="off"/>
+          <button class="input-action" id="useMyLocation" title="Use my location">
+            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2"/><circle cx="12" cy="12" r="8" stroke-dasharray="2 2"/></svg>
+          </button>
+          <div class="autocomplete-list" id="fromAuto" style="display:none"></div>
+        </div>
+
+        <label class="field-label">To</label>
+        <div class="input-wrap" style="position:relative">
+          <svg class="input-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><circle cx="12" cy="11" r="3"/></svg>
+          <input id="toInput" type="text" placeholder="e.g. Rizal Park" autocomplete="off"/>
+          <div class="autocomplete-list" id="toAuto" style="display:none"></div>
+        </div>
+
+        <button class="calc-btn" id="calculateBtn">Calculate Fare</button>
+
+        <div class="places-label">Famous Places</div>
+        <div class="places-grid">
+          <button class="place-btn" data-place="KCC Mall Koronadal"><div class="place-dot"></div>KCC Mall</button>
+          <button class="place-btn" data-place="Koronadal City Hall"><div class="place-dot"></div>City Hall</button>
+          <button class="place-btn" data-place="Rizal Park Koronadal"><div class="place-dot"></div>Rizal Park</button>
+          <button class="place-btn" data-place="Ace Hardware Centerpoint Koronadal"><div class="place-dot"></div>Ace Centerpoint</button>
+          <button class="place-btn" data-place="Public Market Koronadal"><div class="place-dot"></div>Public Market</button>
+        </div>
+
+        <button class="reset-btn" id="resetBtn">🔄 Clear Passenger Data</button>
+      </div>
+    </div>
+
+    <!-- RIGHT: MAP -->
+    <div class="section-card">
+      <div class="card-header">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+        Map
+        <span id="zoneTag" style="margin-left:auto;font-size:11px;font-weight:500;opacity:0.8"></span>
+      </div>
+      <div class="card-body" style="padding:12px">
+        <div id="map"></div>
+      </div>
+      <div class="route-labels">
+        <div class="route-row">
+          <div class="route-dot from"></div>
+          <div class="route-text">
+            <strong>Starting Point</strong>
+            <span id="fromLabel">Not set</span>
+          </div>
+        </div>
+        <div class="route-line"></div>
+        <div class="route-row">
+          <div class="route-dot to"></div>
+          <div class="route-text">
+            <strong>Destination</strong>
+            <span id="toLabel">Not set</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FARE ESTIMATOR -->
+  <div class="section-card fare-estimator">
+    <div class="card-header">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+      Fare Estimator
+    </div>
+
+    <div style="padding:12px 16px 0">
+      <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--border)">Passenger Type</div>
+    </div>
+    <div class="ptype-grid">
+      <button class="ptype-btn" data-type="regular" title="Regular fare">
+        <div class="ptype-icon">🧑</div>
+        <div class="ptype-name" id="regularLabel">Regular</div>
+        <div class="ptype-count" id="regularCount" style="display:none">0</div>
+      </button>
+      <button class="ptype-btn" data-type="highschoolCollege" title="Highschool / College discount">
+        <div class="ptype-icon">🎓</div>
+        <div class="ptype-name" id="hcLabel">HS / College</div>
+        <div class="ptype-count" id="hcCount" style="display:none">0</div>
+      </button>
+      <button class="ptype-btn" data-type="elementary" title="Elementary discount">
+        <div class="ptype-icon">🏫</div>
+        <div class="ptype-name" id="elemLabel">Elementary</div>
+        <div class="ptype-count" id="elemCount" style="display:none">0</div>
+      </button>
+      <button class="ptype-btn" data-type="daycareKinder" title="Daycare / Kinder discount">
+        <div class="ptype-icon">🧒</div>
+        <div class="ptype-name" id="dkLabel">Daycare / Kinder</div>
+        <div class="ptype-count" id="dkCount" style="display:none">0</div>
+      </button>
+    </div>
+
+    <div class="fare-display">
+      <div class="fare-big" id="fareDisplay">₱0<span>.00</span></div>
+      <div class="fare-label">Estimated Total Fare</div>
+    </div>
+
+    <div id="selectedPassengersContainer"></div>
+
+    <div class="fare-breakdown" id="fareBreakdown">
+      <div class="breakdown-title">Fare Breakdown</div>
+      <div class="breakdown-row"><span>Trip Type</span><span>—</span></div>
+      <div class="breakdown-row"><span>Base Fare</span><span>₱0.00</span></div>
+      <div class="breakdown-row"><span>Distance</span><span>₱0.00</span></div>
+      <div class="breakdown-row total"><span>Total per Passenger</span><span>₱0.00</span></div>
+    </div>
+  </div>
+
+</div>
+
+<footer>TricycleFare &nbsp;·&nbsp; City of Koronadal &nbsp;·&nbsp; Smart Fare Calculator</footer>
+
+<script>
+// ═══════════════════════════════════════════════
+// HAMBURGER / DRAWER
+// ═══════════════════════════════════════════════
+const hamburgerBtn = document.getElementById('hamburgerBtn');
+const drawer = document.getElementById('drawer');
+const drawerOverlay = document.getElementById('drawerOverlay');
+const drawerClose = document.getElementById('drawerClose');
+
+function openDrawer() {
+  drawer.classList.add('open');
+  drawerOverlay.classList.add('open');
+  hamburgerBtn.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeDrawer() {
+  drawer.classList.remove('open');
+  drawerOverlay.classList.remove('open');
+  hamburgerBtn.classList.remove('open');
+  document.body.style.overflow = '';
+}
+hamburgerBtn.addEventListener('click', () => drawer.classList.contains('open') ? closeDrawer() : openDrawer());
+drawerClose.addEventListener('click', closeDrawer);
+drawerOverlay.addEventListener('click', closeDrawer);
+
+// ═══════════════════════════════════════════════
+// FARES CONFIG
+// ═══════════════════════════════════════════════
+const FARES = {
+  base_fare: 15,
+  per_km: 2,
+  highschool_college: 3,
+  elementary: 5,
+  kinder_daycare: 7,
+};
+
+// ═══════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════
+let currentPassenger = 1;
+let fromLatLng = null;
+let toLatLng = null;
+
+let passengers = {};
+for (let i = 1; i <= 6; i++) {
+  passengers[i] = { from: null, to: null, fromName: '', toName: '', selectedPassengers: [], passengerClickCount: { regular: 0, highschoolCollege: 0, elementary: 0, daycareKinder: 0 } };
+}
+
+try {
+  const stored = localStorage.getItem('tf_passengers');
+  if (stored) passengers = JSON.parse(stored);
+} catch(e) {}
+
+let passengerClickCount = { regular: 0, highschoolCollege: 0, elementary: 0, daycareKinder: 0 };
+let selectedPassengers = [];
+let passengerFares = { regular: 0, highschoolCollege: 0, elementary: 0, daycareKinder: 0 };
+
+const passengerFromMarkers = {};
+const passengerToMarkers = {};
+const passengerRoutes = {};
+
+// ═══════════════════════════════════════════════
+// MAP SETUP
+// ═══════════════════════════════════════════════
+const koronadalCenter = [6.5004, 124.8436];
+const map = L.map('map').setView(koronadalCenter, 14);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 20 }).addTo(map);
+
+function makeIcon(color) {
+  return L.divIcon({
+    className: '',
+    html: `<div style="width:14px;height:14px;border-radius:50%;background:${color};border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3)"></div>`,
+    iconSize: [14, 14],
+    iconAnchor: [7, 7],
+  });
+}
+const fromIcon = makeIcon('#4338ca');
+const toIcon = makeIcon('#ef4444');
+
+const BASE_ZONE = [
+  [6.505614704839416, 124.83761501190355],[6.510089542695142, 124.84127678990887],
+  [6.50749853200116, 124.84435731801396],[6.51168492539776, 124.84794697861182],
+  [6.509488607615724, 124.85042113267998],[6.511262592504074, 124.85206745222402],
+  [6.507104680561696, 124.85558888337772],[6.501847495538692, 124.85098477900519],
+  [6.5002051566574695, 124.85279274826645],[6.499430986537315, 124.85388826247177],
+  [6.496545371677794, 124.85273082647528],[6.496065695834759, 124.85313812164803],
+  [6.493852615963617, 124.85129348770423],[6.492835562708892, 124.85239674144346],
+  [6.491091656401862, 124.85097799505134],[6.491529013294406, 124.85049953973154],
+  [6.492147977144571, 124.84598401209928],[6.48867667332869, 124.84281976797513],
+  [6.490383029788825, 124.84062812391035],[6.4892107245904915, 124.83808864709738],
+  [6.491425109066617, 124.83812956984823],[6.490146239639753, 124.83651694558355],
+  [6.492037304443221, 124.8346239177169],[6.493980137165635, 124.83644339581474],
+  [6.496605306442615, 124.83398528555668],[6.498240988341137, 124.83523704697247],
+  [6.501586926966811, 124.83132318433542],[6.5069644998706755, 124.83602638630379],
+  [6.505614704839416, 124.83761501190355],
+];
+
+L.polygon(BASE_ZONE, { color: '#6366f1', weight: 2, fillColor: '#6366f1', fillOpacity: 0.07 })
+  .addTo(map).bindTooltip('Base Zone (Flat Rate)', { permanent: false });
+
+const baseZoneTurf = turf.polygon([BASE_ZONE.map(c => [c[1], c[0]])]);
+
+function isInsideBaseZone(lat, lng) {
+  return turf.booleanPointInPolygon(turf.point([lng, lat]), baseZoneTurf);
+}
+
+// ═══════════════════════════════════════════════
+// PASSENGER TABS
+// ═══════════════════════════════════════════════
+const tabContainer = document.getElementById('passengerTabs');
+for (let i = 1; i <= 6; i++) {
+  const btn = document.createElement('button');
+  btn.className = 'pax-btn' + (i === 1 ? ' active' : '');
+  btn.textContent = i;
+  btn.dataset.page = i;
+  btn.addEventListener('click', () => switchPassenger(i));
+  tabContainer.appendChild(btn);
+}
+
+function updateTabColors() {
+  document.querySelectorAll('.pax-btn').forEach(btn => {
+    const page = parseInt(btn.dataset.page);
+    btn.classList.toggle('active', page === currentPassenger);
+    const p = passengers[page];
+    btn.classList.toggle('has-data', !!(p && p.from && p.to));
+  });
+}
+
+function saveCurrentPassenger() {
+  passengers[currentPassenger] = {
+    from: fromLatLng, to: toLatLng,
+    fromName: document.getElementById('fromInput').value,
+    toName: document.getElementById('toInput').value,
+    selectedPassengers: [...selectedPassengers],
+    passengerClickCount: { ...passengerClickCount },
+  };
+  localStorage.setItem('tf_passengers', JSON.stringify(passengers));
+}
+
+function switchPassenger(page) {
+  saveCurrentPassenger();
+  hideOtherMarkers(page);
+  currentPassenger = page;
+  updateTabColors();
+  loadPassenger(page);
+}
+
+function hideOtherMarkers(exceptPage) {
+  for (let i = 1; i <= 6; i++) {
+    if (i === exceptPage) continue;
+    if (passengerFromMarkers[i]) { map.removeLayer(passengerFromMarkers[i]); passengerFromMarkers[i] = null; }
+    if (passengerToMarkers[i]) { map.removeLayer(passengerToMarkers[i]); passengerToMarkers[i] = null; }
+    if (passengerRoutes[i]) { map.removeControl(passengerRoutes[i]); passengerRoutes[i] = null; }
+  }
+}
+
+function loadPassenger(page) {
+  clearCurrentMarkers();
+  clearRoute(page);
+  const p = passengers[page] || {};
+  fromLatLng = p.from || null;
+  toLatLng = p.to || null;
+  selectedPassengers = p.selectedPassengers ? [...p.selectedPassengers] : [];
+  passengerClickCount = p.passengerClickCount ? { ...p.passengerClickCount } : { regular: 0, highschoolCollege: 0, elementary: 0, daycareKinder: 0 };
+  document.getElementById('fromInput').value = p.fromName || '';
+  document.getElementById('toInput').value = p.toName || '';
+  document.getElementById('fromLabel').textContent = p.fromName || 'Not set';
+  document.getElementById('toLabel').textContent = p.toName || 'Not set';
+  if (fromLatLng) passengerFromMarkers[page] = L.marker(fromLatLng, { icon: fromIcon }).addTo(map);
+  if (toLatLng) passengerToMarkers[page] = L.marker(toLatLng, { icon: toIcon }).addTo(map);
+  if (fromLatLng && toLatLng) { drawRoute(page, fromLatLng, toLatLng); calculateAndDisplay(); }
+  else { resetBreakdown(); renderSelectedPassengers(); }
+  map.setView(fromLatLng || koronadalCenter, 14);
+}
+
+function clearCurrentMarkers() {
+  const page = currentPassenger;
+  if (passengerFromMarkers[page]) { map.removeLayer(passengerFromMarkers[page]); passengerFromMarkers[page] = null; }
+  if (passengerToMarkers[page]) { map.removeLayer(passengerToMarkers[page]); passengerToMarkers[page] = null; }
+}
+
+function clearRoute(page) {
+  if (passengerRoutes[page]) { map.removeControl(passengerRoutes[page]); passengerRoutes[page] = null; }
+}
+
+function drawRoute(page, from, to) {
+  clearRoute(page);
+  passengerRoutes[page] = L.Routing.control({
+    waypoints: [L.latLng(...from), L.latLng(...to)],
+    routeWhileDragging: false, draggableWaypoints: false,
+    addWaypoints: false, show: false,
+    lineOptions: { styles: [{ color: '#6366f1', weight: 4, opacity: 0.8 }] },
+    createMarker: () => null,
+  }).addTo(map);
+}
+
+// ═══════════════════════════════════════════════
+// FARE CALCULATION
+// ═══════════════════════════════════════════════
+function calcFare(type) {
+  if (!fromLatLng || !toLatLng) return 0;
+  const fromIn = isInsideBaseZone(fromLatLng[0], fromLatLng[1]);
+  const toIn = isInsideBaseZone(toLatLng[0], toLatLng[1]);
+  const distKm = L.latLng(...fromLatLng).distanceTo(L.latLng(...toLatLng)) / 1000;
+  let base = FARES.base_fare, distFare = 0, tripType = '';
+  if (fromIn && toIn) { tripType = 'Inside → Inside (Flat)'; }
+  else { tripType = (fromIn || toIn) ? 'Inside ↔ Outside' : 'Outside → Outside'; distFare = distKm * FARES.per_km; }
+  let total = Math.round(base + distFare);
+  let discount = 0;
+  switch (type) {
+    case 'highschoolCollege': discount = FARES.highschool_college; break;
+    case 'elementary': discount = FARES.elementary; break;
+    case 'daycareKinder': discount = FARES.kinder_daycare; break;
+  }
+  return { total: Math.max(total - discount, 0), base, distFare: Math.round(distFare), discount, distKm, tripType };
+}
+
+function calculateAllFares() {
+  ['regular','highschoolCollege','elementary','daycareKinder'].forEach(t => {
+    const r = calcFare(t); passengerFares[t] = r ? r.total : 0;
+  });
+}
+
+function calculateAndDisplay() {
+  if (!fromLatLng || !toLatLng) return;
+  calculateAllFares(); renderSelectedPassengers(); updateBreakdown();
+}
+
+function updateBreakdown() {
+  if (!fromLatLng || !toLatLng) { resetBreakdown(); return; }
+  const r = calcFare('regular');
+  document.getElementById('fareBreakdown').innerHTML = `
+    <div class="breakdown-title">Fare Breakdown</div>
+    <div class="trip-type-badge">${r.tripType}</div>
+    <div class="breakdown-row"><span>Base Fare</span><span>₱${r.base}</span></div>
+    <div class="breakdown-row"><span>Distance (${r.distKm.toFixed(1)} km × ₱${FARES.per_km})</span><span>₱${r.distFare}</span></div>
+    <div class="breakdown-row total"><span>Total per Regular Pax</span><span>₱${r.total}</span></div>
+    <div style="margin-top:8px;font-size:11px;color:var(--muted)">HS/College: -₱${FARES.highschool_college} &nbsp;|&nbsp; Elementary: -₱${FARES.elementary} &nbsp;|&nbsp; Daycare/Kinder: -₱${FARES.kinder_daycare}</div>
+  `;
+  document.getElementById('zoneTag').textContent = r.tripType.includes('Inside → Inside') ? '🟢 Base Zone' : '🔵 Extended';
+}
+
+function resetBreakdown() {
+  document.getElementById('fareBreakdown').innerHTML = `
+    <div class="breakdown-title">Fare Breakdown</div>
+    <div class="breakdown-row"><span>Trip Type</span><span>—</span></div>
+    <div class="breakdown-row"><span>Base Fare</span><span>₱0.00</span></div>
+    <div class="breakdown-row"><span>Distance</span><span>₱0.00</span></div>
+    <div class="breakdown-row total"><span>Total per Passenger</span><span>₱0.00</span></div>
+  `;
+  document.getElementById('zoneTag').textContent = '';
+}
+
+function syncSelectedPassengers() {
+  selectedPassengers = [];
+  ['regular','highschoolCollege','elementary','daycareKinder'].forEach(type => {
+    const count = passengerClickCount[type] || 0;
+    if (count > 0) selectedPassengers.push({ type, count });
+  });
+}
+
+function renderSelectedPassengers() {
+  syncSelectedPassengers();
+  const container = document.getElementById('selectedPassengersContainer');
+  container.innerHTML = '';
+  let grandTotal = 0;
+  const typeNames = { regular:'Regular', highschoolCollege:'HS / College', elementary:'Elementary', daycareKinder:'Daycare / Kinder' };
+  selectedPassengers.forEach(p => {
+    const fare = passengerFares[p.type] || 0;
+    const discount = p.type === 'regular' ? 0 : getDiscount(p.type);
+    const subtotal = fare * p.count;
+    grandTotal += subtotal;
+    const div = document.createElement('div');
+    div.className = 'selected-pax-item';
+    div.innerHTML = `
+      <div class="spax-left">
+        <div class="spax-count">×${p.count}</div>
+        <div>
+          <div class="spax-type">${typeNames[p.type]}</div>
+          ${discount > 0 ? `<div class="spax-discount">−₱${discount} discount each</div>` : ''}
+        </div>
+      </div>
+      <div class="spax-right">
+        <div class="spax-fare">₱${subtotal}</div>
+        <button class="minus-btn" data-type="${p.type}">−</button>
+      </div>
+    `;
+    div.querySelector('.minus-btn').addEventListener('click', () => {
+      passengerClickCount[p.type] = Math.max(0, (passengerClickCount[p.type] || 0) - 1);
+      calculateAllFares(); renderSelectedPassengers();
+    });
+    container.appendChild(div);
+  });
+  document.getElementById('fareDisplay').innerHTML = `₱${grandTotal}<span>.00</span>`;
+  ['regular','highschoolCollege','elementary','daycareKinder'].forEach(t => {
+    const countEl = document.getElementById(t==='regular'?'regularCount':t==='highschoolCollege'?'hcCount':t==='elementary'?'elemCount':'dkCount');
+    const count = passengerClickCount[t] || 0;
+    countEl.textContent = count;
+    countEl.style.display = count > 0 ? 'flex' : 'none';
+    document.querySelector(`.ptype-btn[data-type="${t}"]`).classList.toggle('has-count', count > 0);
+  });
+}
+
+function getDiscount(type) {
+  switch(type) {
+    case 'highschoolCollege': return FARES.highschool_college;
+    case 'elementary': return FARES.elementary;
+    case 'daycareKinder': return FARES.kinder_daycare;
+    default: return 0;
+  }
+}
+
+document.querySelectorAll('.ptype-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const type = btn.dataset.type;
+    if (!fromLatLng || !toLatLng) { showToast('Please select From and To locations first'); return; }
+    passengerClickCount[type] = (passengerClickCount[type] || 0) + 1;
+    calculateAllFares(); renderSelectedPassengers();
+  });
+});
+
+document.getElementById('calculateBtn').addEventListener('click', () => {
+  if (!fromLatLng || !toLatLng) { showToast('Please select both From and To locations'); return; }
+  clearRoute(currentPassenger);
+  drawRoute(currentPassenger, fromLatLng, toLatLng);
+  calculateAndDisplay(); saveCurrentPassenger();
+  showToast('Fare calculated! Now select passenger types below.');
+});
+
+function setupAutocomplete(inputId, autoId, onSelect) {
+  const input = document.getElementById(inputId);
+  const list = document.getElementById(autoId);
+  let debounce;
+  input.addEventListener('input', () => {
+    clearTimeout(debounce);
+    const q = input.value.trim();
+    list.innerHTML = ''; list.style.display = 'none';
+    if (q.length < 2) return;
+    debounce = setTimeout(async () => {
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q + ', Koronadal City, Philippines')}&limit=5`);
+        const data = await res.json();
+        if (!data.length) return;
+        list.style.display = 'block';
+        data.forEach(place => {
+          const item = document.createElement('div');
+          item.className = 'autocomplete-item';
+          item.textContent = place.display_name;
+          item.addEventListener('click', () => { input.value = place.display_name; list.style.display = 'none'; onSelect([parseFloat(place.lat), parseFloat(place.lon)], place.display_name); });
+          list.appendChild(item);
+        });
+      } catch(e) { list.style.display = 'none'; }
+    }, 400);
+  });
+  document.addEventListener('click', e => { if (!list.contains(e.target) && e.target !== input) list.style.display = 'none'; });
+}
+
+setupAutocomplete('fromInput', 'fromAuto', (latlng, name) => {
+  fromLatLng = latlng;
+  if (passengerFromMarkers[currentPassenger]) map.removeLayer(passengerFromMarkers[currentPassenger]);
+  passengerFromMarkers[currentPassenger] = L.marker(latlng, { icon: fromIcon }).addTo(map);
+  document.getElementById('fromLabel').textContent = name;
+  map.setView(latlng, 15); resetBreakdown();
+});
+
+setupAutocomplete('toInput', 'toAuto', (latlng, name) => {
+  toLatLng = latlng;
+  if (passengerToMarkers[currentPassenger]) map.removeLayer(passengerToMarkers[currentPassenger]);
+  passengerToMarkers[currentPassenger] = L.marker(latlng, { icon: toIcon }).addTo(map);
+  document.getElementById('toLabel').textContent = name;
+  map.setView(latlng, 15); resetBreakdown();
+});
+
+map.on('click', async (e) => {
+  const { lat, lng } = e.latlng;
+  toLatLng = [lat, lng];
+  if (passengerToMarkers[currentPassenger]) map.removeLayer(passengerToMarkers[currentPassenger]);
+  passengerToMarkers[currentPassenger] = L.marker([lat, lng], { icon: toIcon }).addTo(map);
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+    const data = await res.json();
+    const name = data.display_name || `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+    document.getElementById('toInput').value = name;
+    document.getElementById('toLabel').textContent = name;
+  } catch(e) {
+    const name = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+    document.getElementById('toInput').value = name;
+    document.getElementById('toLabel').textContent = name;
+  }
+  resetBreakdown();
+});
+
+document.getElementById('useMyLocation').addEventListener('click', () => {
+  if (!navigator.geolocation) { showToast('Geolocation not supported'); return; }
+  showToast('Getting your location…');
+  navigator.geolocation.getCurrentPosition(async pos => {
+    const { latitude: lat, longitude: lng } = pos.coords;
+    fromLatLng = [lat, lng];
+    if (passengerFromMarkers[currentPassenger]) map.removeLayer(passengerFromMarkers[currentPassenger]);
+    passengerFromMarkers[currentPassenger] = L.marker([lat, lng], { icon: fromIcon }).addTo(map);
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+      const data = await res.json();
+      const name = data.display_name || 'Your Location';
+      document.getElementById('fromInput').value = name;
+      document.getElementById('fromLabel').textContent = name;
+    } catch(e) { document.getElementById('fromInput').value = 'Your Location'; document.getElementById('fromLabel').textContent = 'Your Location'; }
+    map.setView([lat, lng], 15); showToast('Location set!');
+  }, () => showToast('Unable to get location'));
+});
+
+document.querySelectorAll('.place-btn').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    const place = btn.dataset.place;
+    try {
+      btn.disabled = true; btn.innerHTML += ' <span class="spin"></span>';
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(place)}&limit=1`);
+      const data = await res.json();
+      if (!data.length) { showToast('Location not found'); return; }
+      const lat = parseFloat(data[0].lat), lng = parseFloat(data[0].lon);
+      const name = data[0].display_name;
+      toLatLng = [lat, lng];
+      if (passengerToMarkers[currentPassenger]) map.removeLayer(passengerToMarkers[currentPassenger]);
+      passengerToMarkers[currentPassenger] = L.marker([lat, lng], { icon: toIcon }).addTo(map);
+      document.getElementById('toInput').value = name;
+      document.getElementById('toLabel').textContent = name;
+      map.setView([lat, lng], 16); resetBreakdown();
+    } catch(e) { showToast('Failed to load location'); }
+    finally { btn.disabled = false; btn.querySelector('.spin')?.remove(); }
+  });
+});
+
+document.getElementById('resetBtn').addEventListener('click', () => {
+  clearCurrentMarkers(); clearRoute(currentPassenger);
+  fromLatLng = null; toLatLng = null;
+  passengerClickCount = { regular: 0, highschoolCollege: 0, elementary: 0, daycareKinder: 0 };
+  selectedPassengers = [];
+  passengerFares = { regular: 0, highschoolCollege: 0, elementary: 0, daycareKinder: 0 };
+  document.getElementById('fromInput').value = '';
+  document.getElementById('toInput').value = '';
+  document.getElementById('fromLabel').textContent = 'Not set';
+  document.getElementById('toLabel').textContent = 'Not set';
+  document.getElementById('fareDisplay').innerHTML = '₱0<span>.00</span>';
+  document.getElementById('selectedPassengersContainer').innerHTML = '';
+  resetBreakdown();
+  passengers[currentPassenger] = { from: null, to: null, fromName: '', toName: '', selectedPassengers: [], passengerClickCount: { regular: 0, highschoolCollege: 0, elementary: 0, daycareKinder: 0 } };
+  localStorage.setItem('tf_passengers', JSON.stringify(passengers));
+  updateTabColors(); showToast(`Passenger ${currentPassenger} cleared`);
+});
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+updateTabColors();
+loadPassenger(1);
+</script>
+</body>
+</html>

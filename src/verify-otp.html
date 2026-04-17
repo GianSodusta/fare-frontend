@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TrikeFare — Verify & Register</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    body { background: #f1f5f9; display: flex; min-height: 100vh; align-items: center; justify-content: center; padding: 1.5rem; }
+    .auth-card { background: #fff; border-radius: 1rem; box-shadow: 0 4px 32px rgba(0,0,0,.1); width: 100%; max-width: 440px; padding: 2.25rem 2rem; }
+    .auth-logo { font-size: 1.6rem; font-weight: 800; color: var(--primary); margin-bottom: .1rem; }
+    .auth-sub { font-size: .82rem; color: var(--text-muted); margin-bottom: 1.75rem; }
+    .back-link { font-size: .82rem; color: var(--primary); font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; gap: .3rem; margin-bottom: 1.25rem; }
+    .back-link:hover { text-decoration: underline; }
+    .error-msg { font-size: .8rem; color: var(--danger); margin-top: .35rem; display: none; }
+    .step-dots { display: flex; gap: .4rem; margin-bottom: 1.5rem; }
+    .dot { width: 28px; height: 4px; border-radius: 99px; background: var(--border); transition: background .3s; }
+    .dot.active { background: var(--primary); }
+
+    /* OTP boxes */
+    .otp-row { display: flex; gap: .5rem; justify-content: center; margin: 1rem 0 .35rem; }
+    .otp-box {
+      width: 44px; height: 52px; border: 2px solid var(--border); border-radius: .5rem;
+      text-align: center; font-size: 1.4rem; font-weight: 800; font-family: 'Outfit', sans-serif;
+      outline: none; transition: border-color .2s; color: var(--primary);
+    }
+    .otp-box:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(99,102,241,.15); }
+    .otp-box.filled { border-color: var(--primary); background: #eef2ff; }
+    .otp-box.error-state { border-color: var(--danger); }
+
+    .resend-row { text-align: center; font-size: .8rem; color: var(--text-muted); margin-bottom: 1rem; }
+    .resend-btn { background: none; border: none; color: var(--primary); font-weight: 700; cursor: pointer; font-family: inherit; font-size: .8rem; }
+    .resend-btn:disabled { color: var(--text-muted); cursor: default; }
+
+    .countdown { font-weight: 700; color: var(--primary); }
+
+    /* Step 2: registration form */
+    #step-register { display: none; }
+    .name-row { display: grid; grid-template-columns: 1fr 1fr; gap: .65rem; }
+
+    /* Password strength */
+    .pw-strength-bar { height: 4px; border-radius: 2px; margin-top: .4rem; transition: all .3s; }
+    .pw-hint { font-size: .75rem; color: var(--text-muted); margin-top: .25rem; }
+  </style>
+</head>
+<body>
+
+<div class="auth-card">
+  <div class="auth-logo">TrikeFare.</div>
+  <p class="auth-sub">City of Koronadal</p>
+
+  <!-- Step 1: Verify OTP -->
+  <div id="step-otp">
+    <div class="step-dots">
+      <div class="dot active"></div>
+      <div class="dot active"></div>
+      <div class="dot"></div>
+    </div>
+    <a href="request-otp.html" class="back-link">← Back</a>
+    <h1 style="font-size:1.15rem;font-weight:800;margin-bottom:.25rem;">Check your email</h1>
+    <p style="font-size:.82rem;color:var(--text-muted);margin-bottom:1rem;">Enter the 6-digit code sent to <strong id="email-display">your email</strong></p>
+
+    <div class="otp-row" id="otp-row">
+      <input class="otp-box" type="text" maxlength="1" inputmode="numeric" />
+      <input class="otp-box" type="text" maxlength="1" inputmode="numeric" />
+      <input class="otp-box" type="text" maxlength="1" inputmode="numeric" />
+      <input class="otp-box" type="text" maxlength="1" inputmode="numeric" />
+      <input class="otp-box" type="text" maxlength="1" inputmode="numeric" />
+      <input class="otp-box" type="text" maxlength="1" inputmode="numeric" />
+    </div>
+
+    <div class="error-msg" id="otp-error" style="text-align:center;"></div>
+
+    <button class="btn btn-primary btn-full btn-lg" id="verify-btn" onclick="verifyOTP()" style="margin-top:1rem;">
+      Verify Code
+    </button>
+
+    <div class="resend-row" style="margin-top:1rem;">
+      Didn't receive it?
+      <button class="resend-btn" id="resend-btn" onclick="resendOTP()" disabled>
+        Resend in <span class="countdown" id="countdown">60</span>s
+      </button>
+    </div>
+  </div>
+
+  <!-- Step 2: Register -->
+  <div id="step-register">
+    <div class="step-dots">
+      <div class="dot active"></div>
+      <div class="dot active"></div>
+      <div class="dot active"></div>
+    </div>
+    <h1 style="font-size:1.15rem;font-weight:800;margin-bottom:.25rem;">Complete your profile</h1>
+    <p style="font-size:.82rem;color:var(--text-muted);margin-bottom:1.25rem;">Set up your TrikeFare account</p>
+
+    <div class="name-row">
+      <div class="form-group">
+        <label class="form-label" for="firstname">First Name</label>
+        <input class="form-input" type="text" id="firstname" placeholder="Juan" autocomplete="given-name" />
+        <div class="error-msg" id="fn-error"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="lastname">Last Name</label>
+        <input class="form-input" type="text" id="lastname" placeholder="Dela Cruz" autocomplete="family-name" />
+        <div class="error-msg" id="ln-error"></div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="password">Password</label>
+      <div style="position:relative;">
+        <input class="form-input" type="password" id="password" placeholder="At least 8 characters" style="padding-right:2.8rem;" />
+        <button type="button" id="toggle-pw" style="position:absolute;right:.75rem;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-muted);">👁</button>
+      </div>
+      <div class="pw-strength-bar" id="pw-bar" style="background:var(--border);"></div>
+      <div class="pw-hint" id="pw-hint">Enter a password</div>
+      <div class="error-msg" id="pw-error"></div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="confirm-password">Confirm Password</label>
+      <input class="form-input" type="password" id="confirm-password" placeholder="Re-enter password" />
+      <div class="error-msg" id="cpw-error"></div>
+    </div>
+
+    <button class="btn btn-primary btn-full btn-lg" id="register-btn" onclick="registerUser()">
+      Create Account 🎉
+    </button>
+  </div>
+</div>
+
+<script>
+  const API_URL = "https://fare-backend.onrender.com";
+  const params = new URLSearchParams(window.location.search);
+  const email = params.get("email") || "";
+  let verifiedOTP = "";
+
+  document.getElementById("email-display").textContent = email || "your email";
+
+  // OTP input wiring
+  const boxes = Array.from(document.querySelectorAll(".otp-box"));
+  boxes.forEach((box, i) => {
+    box.addEventListener("input", (e) => {
+      const val = e.target.value.replace(/\D/g, "");
+      e.target.value = val;
+      if (val && i < boxes.length - 1) boxes[i + 1].focus();
+      box.classList.toggle("filled", !!val);
+      document.getElementById("otp-error").style.display = "none";
+    });
+    box.addEventListener("keydown", (e) => {
+      if (e.key === "Backspace" && !box.value && i > 0) {
+        boxes[i - 1].focus();
+        boxes[i - 1].value = "";
+        boxes[i - 1].classList.remove("filled");
+      }
+      if (e.key === "Enter") verifyOTP();
+    });
+    box.addEventListener("paste", (e) => {
+      e.preventDefault();
+      const pasted = (e.clipboardData.getData("text") || "").replace(/\D/g, "").slice(0, 6);
+      boxes.forEach((b, j) => {
+        b.value = pasted[j] || "";
+        b.classList.toggle("filled", !!b.value);
+      });
+      boxes[Math.min(pasted.length, 5)].focus();
+    });
+  });
+
+  // Countdown
+  let countdown = 60;
+  const timer = setInterval(() => {
+    countdown--;
+    document.getElementById("countdown").textContent = countdown;
+    if (countdown <= 0) {
+      clearInterval(timer);
+      const btn = document.getElementById("resend-btn");
+      btn.disabled = false;
+      btn.textContent = "Resend code";
+    }
+  }, 1000);
+
+  async function resendOTP() {
+    try {
+      await fetch(`${API_URL}/request-otp`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email }) });
+      document.getElementById("resend-btn").textContent = "Code sent!";
+      document.getElementById("resend-btn").disabled = true;
+      setTimeout(() => { document.getElementById("resend-btn").textContent = "Resend code"; document.getElementById("resend-btn").disabled = false; }, 30000);
+    } catch {}
+  }
+
+  async function verifyOTP() {
+    const otp = boxes.map(b => b.value).join("");
+    const errEl = document.getElementById("otp-error");
+    const btn = document.getElementById("verify-btn");
+
+    if (otp.length < 6) {
+      boxes.forEach(b => b.classList.add("error-state"));
+      errEl.textContent = "Please enter the full 6-digit code.";
+      errEl.style.display = "block";
+      return;
+    }
+    boxes.forEach(b => b.classList.remove("error-state"));
+
+    btn.disabled = true; btn.textContent = "Verifying…";
+    try {
+      // We verify inline — just save OTP and show register form
+      // (Full verification happens server-side with /verify-otp)
+      verifiedOTP = otp;
+      document.getElementById("step-otp").style.display = "none";
+      document.getElementById("step-register").style.display = "block";
+    } finally {
+      btn.disabled = false; btn.textContent = "Verify Code";
+    }
+  }
+
+  // Password strength
+  document.getElementById("password").addEventListener("input", updateStrength);
+  document.getElementById("toggle-pw").addEventListener("click", () => {
+    const pw = document.getElementById("password");
+    document.getElementById("toggle-pw").textContent = pw.type === "password" ? "🙈" : "👁";
+    pw.type = pw.type === "password" ? "text" : "password";
+  });
+
+  function updateStrength() {
+    const pw = document.getElementById("password").value;
+    const bar = document.getElementById("pw-bar");
+    const hint = document.getElementById("pw-hint");
+    let score = 0;
+    if (pw.length >= 8) score++;
+    if (/[A-Z]/.test(pw)) score++;
+    if (/[0-9]/.test(pw)) score++;
+    if (/[^A-Za-z0-9]/.test(pw)) score++;
+    const colors = ["#ef4444","#f59e0b","#10b981","#6366f1"];
+    const hints  = ["Too short","Weak","Good","Strong 💪"];
+    bar.style.background = colors[score - 1] || "#e2e8f0";
+    bar.style.width = pw ? `${Math.min(score * 25, 100)}%` : "0";
+    hint.textContent = pw ? hints[score - 1] || hints[0] : "Enter a password";
+  }
+
+  async function registerUser() {
+    const fn  = document.getElementById("firstname").value.trim();
+    const ln  = document.getElementById("lastname").value.trim();
+    const pw  = document.getElementById("password").value;
+    const cpw = document.getElementById("confirm-password").value;
+    const btn = document.getElementById("register-btn");
+
+    // Clear errors
+    ["fn-error","ln-error","pw-error","cpw-error"].forEach(id => {
+      const el = document.getElementById(id);
+      el.style.display = "none"; el.textContent = "";
+    });
+
+    let valid = true;
+    if (!fn) { const e = document.getElementById("fn-error"); e.textContent = "Required"; e.style.display = "block"; valid = false; }
+    if (!ln) { const e = document.getElementById("ln-error"); e.textContent = "Required"; e.style.display = "block"; valid = false; }
+    if (pw.length < 8) { const e = document.getElementById("pw-error"); e.textContent = "Password must be at least 8 characters"; e.style.display = "block"; valid = false; }
+    if (pw !== cpw) { const e = document.getElementById("cpw-error"); e.textContent = "Passwords do not match"; e.style.display = "block"; valid = false; }
+    if (!valid) return;
+
+    btn.disabled = true; btn.textContent = "Creating account…";
+    try {
+      const res = await fetch(`${API_URL}/verify-otp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, otp: verifiedOTP, password: pw, firstname: fn, lastname: ln }),
+      });
+
+      if (res.ok) {
+        // Auto sign-in after registration
+        const loginRes = await fetch(`${API_URL}/check-password`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password: pw }),
+        });
+        if (loginRes.ok) {
+          const data = await loginRes.json();
+          if (data.success) {
+            localStorage.setItem("user", JSON.stringify(data.user));
+            window.location.href = "home.html";
+            return;
+          }
+        }
+        window.location.href = "index.html";
+      } else {
+        const text = await res.text();
+        const e = document.getElementById("pw-error");
+        e.textContent = text.includes("OTP") ? "Invalid or expired code. Go back and request a new one." : (text || "Registration failed.");
+        e.style.display = "block";
+      }
+    } catch (e) {
+      const el = document.getElementById("pw-error");
+      el.textContent = "Network error. Please try again.";
+      el.style.display = "block";
+    } finally {
+      btn.disabled = false; btn.textContent = "Create Account 🎉";
+    }
+  }
+</script>
+</body>
+</html>
