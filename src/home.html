@@ -1723,9 +1723,89 @@
 
     <script src="util.js"></script>
     <script>
+      if (!user) {
+        window.location.href = "index.html";
+      }
       // ═══════════════════════════════════════════════
       // PROFILE / SETTINGS PERSISTENCE
       // ═══════════════════════════════════════════════
+      let user = null;
+
+      window.addEventListener("DOMContentLoaded", async () => {
+        // 1️⃣ Load user from localStorage
+        const storedUser = localStorage.getItem("user");
+
+        try {
+          user = storedUser ? JSON.parse(storedUser) : null;
+        } catch (err) {
+          console.error("Invalid user data in localStorage:", err);
+          localStorage.removeItem("user");
+          window.location.href = "index.html";
+          return;
+        }
+
+        // 2️⃣ Redirect if not logged in
+        if (!user || !user.id) {
+          window.location.href = "index.html";
+          return;
+        }
+
+        // 3️⃣ Render sidebar user info
+        renderUserSidebar(user);
+
+        // 4️⃣ Initialize your app logic here
+        try {
+          await loadFaresFromServer?.(); // safe call if function exists
+
+          if (typeof currentPassenger !== "undefined") {
+            highlightPassengerButton?.(currentPassenger);
+            loadPassengerData?.(currentPassenger);
+          }
+
+          // any other startup logic
+          console.log("App initialized for:", user.firstname);
+        } catch (err) {
+          console.error("Initialization error:", err);
+        }
+
+        // 5️⃣ Optional heartbeat (if you use it)
+        if (typeof sendHeartbeat === "function") {
+          sendHeartbeat();
+          setInterval(sendHeartbeat, 30000);
+        }
+
+        // 6️⃣ Logout handler
+        const logoutBtn = document.getElementById("logoutBtn");
+        if (logoutBtn) {
+          logoutBtn.addEventListener("click", () => {
+            localStorage.removeItem("user");
+            sessionStorage.clear();
+            window.location.href = "index.html";
+          });
+        }
+      });
+
+      /* =========================
+   USER SIDEBAR RENDER
+========================= */
+      function renderUserSidebar(user) {
+        const userNameEl = document.getElementById("user-name");
+        const userEmailEl = document.getElementById("user-email");
+        const userPictureEl = document.getElementById("user-picture");
+
+        if (userNameEl) {
+          userNameEl.textContent = `${user.firstname || ""} ${user.lastname || ""}`;
+        }
+
+        if (userEmailEl) {
+          userEmailEl.textContent = user.email || "";
+        }
+
+        if (userPictureEl) {
+          userPictureEl.src = user.profile_pic || "../src/img/person.png";
+        }
+      }
+
       function loadProfile() {
         try {
           const profile = JSON.parse(
@@ -2070,8 +2150,8 @@
         drawRoute(currentPassenger, fromLatLng, toLatLng);
         calculateAndDisplay();
         saveCurrentPassenger();
-        showToast("Fare calculated! Now select passenger types below.");
         saveTripToHistory();
+        showToast("Fare calculated! Now select passenger types below.");
       });
 
       // ═══════════════════════════════════════════════
