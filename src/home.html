@@ -2048,6 +2048,32 @@
         return turf.booleanPointInPolygon(turf.point([lng, lat]), baseZoneTurf);
       }
 
+      document.querySelectorAll(".ptype-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const type = btn.dataset.type;
+          if (!fromLatLng || !toLatLng) {
+            showToast("Please select From and To locations first");
+            return;
+          }
+          passengerClickCount[type] = (passengerClickCount[type] || 0) + 1;
+          calculateAllFares();
+          renderSelectedPassengers();
+        });
+      });
+
+      document.getElementById("calculateBtn").addEventListener("click", () => {
+        if (!fromLatLng || !toLatLng) {
+          showToast("Please select both From and To locations");
+          return;
+        }
+        clearRoute(currentPassenger);
+        drawRoute(currentPassenger, fromLatLng, toLatLng);
+        calculateAndDisplay();
+        saveCurrentPassenger();
+        showToast("Fare calculated! Now select passenger types below.");
+        saveTripToHistory();
+      });
+
       // ═══════════════════════════════════════════════
       // PASSENGER TABS
       // ═══════════════════════════════════════════════
@@ -2427,32 +2453,6 @@
         if (type === "daycareKinder") return FARES.kinder_daycare;
         return 0;
       }
-
-      document.querySelectorAll(".ptype-btn").forEach((btn) => {
-        btn.addEventListener("click", () => {
-          const type = btn.dataset.type;
-          if (!fromLatLng || !toLatLng) {
-            showToast("Please select From and To locations first");
-            return;
-          }
-          passengerClickCount[type] = (passengerClickCount[type] || 0) + 1;
-          calculateAllFares();
-          renderSelectedPassengers();
-        });
-      });
-
-      document.getElementById("calculateBtn").addEventListener("click", () => {
-        if (!fromLatLng || !toLatLng) {
-          showToast("Please select both From and To locations");
-          return;
-        }
-        clearRoute(currentPassenger);
-        drawRoute(currentPassenger, fromLatLng, toLatLng);
-        calculateAndDisplay();
-        saveCurrentPassenger();
-        showToast("Fare calculated! Now select passenger types below.");
-        saveTripToHistory();
-      });
 
       function setupAutocomplete(inputId, autoId, onSelect) {
         const input = document.getElementById(inputId);
