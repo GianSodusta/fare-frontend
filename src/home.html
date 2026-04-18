@@ -2095,13 +2095,22 @@
         }
       }
       function clearRoute(page) {
+        // remove routing control
         if (passengerRoutes[page]) {
           map.removeControl(passengerRoutes[page]);
           passengerRoutes[page] = null;
         }
+
+        // remove custom polylines
+        if (routeLayers[page]) {
+          routeLayers[page].forEach((layer) => map.removeLayer(layer));
+          routeLayers[page] = [];
+        }
       }
       function drawRoute(page, from, to) {
         clearRoute(page);
+
+        routeLayers[page] = []; // store layers
 
         passengerRoutes[page] = L.Routing.control({
           waypoints: [L.latLng(...from), L.latLng(...to)],
@@ -2110,31 +2119,36 @@
           addWaypoints: false,
           show: false,
           createMarker: () => null,
+
+          // ✅ hide default red route
+          lineOptions: {
+            styles: [{ opacity: 0 }],
+          },
         })
           .on("routesfound", function (e) {
             const coords = e.routes[0].coordinates;
 
-            // OUTLINE
-            L.polyline(coords, {
+            const outline = L.polyline(coords, {
               color: "#111827",
               weight: 10,
               opacity: 1,
             }).addTo(map);
 
-            // ROAD BODY
-            L.polyline(coords, {
+            const road = L.polyline(coords, {
               color: "#9ca3af",
               weight: 7,
               opacity: 1,
             }).addTo(map);
 
-            // CENTER DASH
-            L.polyline(coords, {
+            const dash = L.polyline(coords, {
               color: "#fbbf24",
               weight: 2,
               opacity: 1,
               dashArray: "10, 10",
             }).addTo(map);
+
+            // ✅ store layers
+            routeLayers[page].push(outline, road, dash);
           })
           .addTo(map);
       }
