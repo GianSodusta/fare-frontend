@@ -1726,68 +1726,47 @@
       if (!user) {
         window.location.href = "index.html";
       }
-      // ═══════════════════════════════════════════════
-      // PROFILE / SETTINGS PERSISTENCE
-      // ═══════════════════════════════════════════════
-      let user = null;
 
-      window.addEventListener("DOMContentLoaded", async () => {
-        // 1️⃣ Load user from localStorage
+      window.addEventListener("DOMContentLoaded", () => {
+        // ✅ get user FIRST
         const storedUser = localStorage.getItem("user");
+
+        let user = null;
 
         try {
           user = storedUser ? JSON.parse(storedUser) : null;
         } catch (err) {
-          console.error("Invalid user data in localStorage:", err);
+          console.error("Invalid user data:", err);
           localStorage.removeItem("user");
           window.location.href = "index.html";
           return;
         }
 
-        // 2️⃣ Redirect if not logged in
-        if (!user || !user.id) {
+        // ❌ stop if no user
+        if (!user) {
           window.location.href = "index.html";
           return;
         }
 
-        // 3️⃣ Render sidebar user info
+        // ✅ render sidebar safely
         renderUserSidebar(user);
 
-        // 4️⃣ Initialize your app logic here
-        try {
-          await loadFaresFromServer?.(); // safe call if function exists
-
-          if (typeof currentPassenger !== "undefined") {
-            highlightPassengerButton?.(currentPassenger);
-            loadPassengerData?.(currentPassenger);
-          }
-
-          // any other startup logic
-          console.log("App initialized for:", user.firstname);
-        } catch (err) {
-          console.error("Initialization error:", err);
-        }
-
-        // 5️⃣ Optional heartbeat (if you use it)
-        if (typeof sendHeartbeat === "function") {
-          sendHeartbeat();
-          setInterval(sendHeartbeat, 30000);
-        }
-
-        // 6️⃣ Logout handler
-        const logoutBtn = document.getElementById("logoutBtn");
-        if (logoutBtn) {
-          logoutBtn.addEventListener("click", () => {
-            localStorage.removeItem("user");
-            sessionStorage.clear();
-            window.location.href = "index.html";
-          });
-        }
+        // ✅ continue app init
+        initApp(user);
       });
-
       /* =========================
    USER SIDEBAR RENDER
 ========================= */
+      function renderUserSidebar(user) {
+        document.getElementById("user-name").textContent =
+          `${user.firstname} ${user.lastname}`;
+
+        document.getElementById("user-email").textContent = user.email;
+
+        document.getElementById("user-picture").src =
+          user.profile_pic || "../src/img/person.png";
+      }
+
       function renderUserSidebar(user) {
         const userNameEl = document.getElementById("user-name");
         const userEmailEl = document.getElementById("user-email");
