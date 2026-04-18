@@ -2232,21 +2232,27 @@
       }
 
       // Save calculated trip to history
-      function saveTripToHistory() {
+      async function saveTripToHistory() {
         try {
           const fromName =
             document.getElementById("fromInput").value || "Unknown";
           const toName = document.getElementById("toInput").value || "Unknown";
+
           let grandTotal = 0;
           selectedPassengers.forEach((p) => {
             grandTotal += (passengerFares[p.type] || 0) * p.count;
           });
+
+          // =========================
+          // ✅ LOCAL STORAGE (your existing code)
+          // =========================
           const history = JSON.parse(
             localStorage.getItem("tf_trip_history") || "[]",
           );
-          // Avoid duplicates from same session
+
           const last = history[history.length - 1];
           if (last && last.from === fromName && last.to === toName) return;
+
           history.push({
             from: fromName,
             to: toName,
@@ -2257,9 +2263,39 @@
               year: "numeric",
             }),
           });
+
           if (history.length > 50) history.shift();
           localStorage.setItem("tf_trip_history", JSON.stringify(history));
-        } catch (e) {}
+
+          // =========================
+          // ✅ SAVE TO DATABASE (NEW PART)
+          // =========================
+          const user = JSON.parse(localStorage.getItem("user"));
+
+          if (!user) return; // not logged in
+
+          await fetch(`${API_URL}/trips`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              user_id: user.id,
+              from_location: fromName,
+              to_location: toName,
+              from_lat: fromLat, // make sure these exist!
+              from_lng: fromLng,
+              to_lat: toLat,
+              to_lng: toLng,
+              distance_km: distance, // your computed distance
+              total_fare: grandTotal,
+              passenger_type: "mixed",
+              passengers: selectedPassengers,
+            }),
+          });
+        } catch (e) {
+          console.error("Save trip error:", e);
+        }
       }
 
       function updateBreakdown() {
