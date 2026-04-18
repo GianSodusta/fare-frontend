@@ -2281,7 +2281,7 @@
           const distanceKm =
             L.latLng(...fromLatLng).distanceTo(L.latLng(...toLatLng)) / 1000;
 
-          await fetch(`${API_URL}/trips`, {
+          const res = await fetch(`${API_URL}/trips`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -2298,6 +2298,16 @@
               passengers: selectedPassengers,
             }),
           });
+
+          const data = await res.json();
+
+          if (res.ok && data.success) {
+            console.log("✅ Trip saved to DB:", data);
+            showToast("Trip saved to database ✅");
+          } else {
+            console.error("❌ Failed to save trip:", data);
+            showToast("Failed to save trip ❌");
+          }
         } catch (e) {
           console.error("Save trip error:", e);
         }
