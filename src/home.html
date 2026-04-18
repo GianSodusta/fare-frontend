@@ -2270,24 +2270,28 @@
           // =========================
           // ✅ SAVE TO DATABASE (NEW PART)
           // =========================
+          // =========================
+          // SAVE TO DATABASE
+          // =========================
           const user = JSON.parse(localStorage.getItem("user"));
+          if (!user) return;
 
-          if (!user) return; // not logged in
+          // compute distance FIRST
+          const distanceKm =
+            L.latLng(...fromLatLng).distanceTo(L.latLng(...toLatLng)) / 1000;
 
           await fetch(`${API_URL}/trips`, {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               user_id: user.id,
               from_location: fromName,
               to_location: toName,
-              from_lat: fromLat, // make sure these exist!
-              from_lng: fromLng,
-              to_lat: toLat,
-              to_lng: toLng,
-              distance_km: distance, // your computed distance
+              from_lat: fromLatLng[0],
+              from_lng: fromLatLng[1],
+              to_lat: toLatLng[0],
+              to_lng: toLatLng[1],
+              distance_km: distanceKm,
               total_fare: grandTotal,
               passenger_type: "mixed",
               passengers: selectedPassengers,
